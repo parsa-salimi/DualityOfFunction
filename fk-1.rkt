@@ -14,12 +14,25 @@
   (reduce-help 0 (remove-duplicates formula equal? ))) ;we have to remove duplicates first because otherwise both instances will be removes by a process of mutually assisted destruction(MAD)
 
 (define (clause-len I) (length I))
+
 (define (sanitycheck f g) f)
-(define (remove-var f x) f)
-(define (remove-clause f x) f)
+
+;we might end up with a redundant DNF but that's okay. We will deal with it in the main recursion
+(define (remove-var f x)
+  (cond [(empty? f) empty]
+        [(member x (first f)) (cons (remove x (first f)) (remove-var (rest f) x))]
+        [else (cons (first f) (remove-var (rest f) x))]))
+
+(define (remove-clause f x)
+  (cond [(empty? f) empty]
+        [(member x (first f)) (remove-clause (rest f) x)]
+        [else (cons (first f) (remove-clause (rest f) x))]))
+
 (define (easydual f g) f)
+
 (define (frequent f g) f)
-(define (disjunction f g) f)
+
+(define (disjunction f g) (remove-duplicates (append f g) equal?))
   
 (define (FK f g)
   (define (FK-irr f g)

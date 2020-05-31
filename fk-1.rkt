@@ -28,9 +28,23 @@
         [(member x (first f)) (remove-clause (rest f) x)]
         [else (cons (first f) (remove-clause (rest f) x))]))
 
+;If one of the formulas has length zero(i.e is empty), duality checking is easy
 (define (easydual f g) f)
 
-(define (frequent f g) f)
+;we can just choose a random variable, or a variable that satisfies the frequency conditions in Fredman Khachyian. The following searches the entire min-length clause, and thus can potentially return
+;a better variable than one that merely satisfies the FK frequency criterea
+(define (frequent f g)
+  (define (minimum-clause f)
+    (define (minimum-help f accum)
+      (cond [(empty? f) accum]
+            [(< (length (first f)) (length accum)) (minimum-help (rest f) (first f))]
+            [else (minimum-help (rest f) accum)]))
+    (minimum-help (rest f) (first f)))
+  ;clause is the clause of minimum length, f is the other formula, for now just return the first element
+  (define (frequent-help clause f) (car clause))
+  (let ((min-f (minimum-clause f ))
+        (min-g (minimum-clause g )))
+    (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
 
 (define (disjunction f g) (remove-duplicates (append f g) equal?))
   

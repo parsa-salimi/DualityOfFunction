@@ -28,8 +28,13 @@
         [(member x (first f)) (remove-clause (rest f) x)]
         [else (cons (first f) (remove-clause (rest f) x))]))
 
-;If one of the formulas has length zero(i.e is empty), duality checking is easy
-(define (easydual f g) f)
+;If |F||G| <= 1, we do duality checking as follows:
+;if both are zero, then they are clearly dual
+;if both have length one, then by our sanity check conditions, the length of both implicants is also 1, and they have the same variable, so they are two identical variables, and therefore dual
+;otherwise, we have an empty formula, and a singleton implicant, which are clearly not dual
+(define (easydual f g)
+  (cond [(= (length f) (length g)) true]
+        [else false]))
 
 ;we can just choose a random variable, or a variable that satisfies the frequency conditions in Fredman Khachyian. The following searches the entire min-length clause, and thus can potentially return
 ;a better variable than one that merely satisfies the FK frequency criterea

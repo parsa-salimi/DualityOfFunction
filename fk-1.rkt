@@ -2,21 +2,8 @@
 ; f and g are lists of lists of int
 ;for example (x1 /\ x2 /\ x3)\/(x3 x4 x5) is represented by '((1 2 3) (3 4 5)). There is no ambiguity because we have assumed that our
 ;clauses are in DNF and moreover since we are only dealing with prime DNF's, we can safely ignore complements.
-
-(define (reduce formula)
-  (define (minimal? clause formula)
-    (if (empty? formula) true
-        (and (not (subset? (car formula) clause)) (minimal? clause (cdr formula)))))
-  (define (reduce-help num formula)
-    (cond [(= num (length formula)) empty]
-          [(minimal? (list-ref formula num) (remove (list-ref formula num) formula)) (cons (list-ref formula num) (reduce-help (+ num 1) formula))]
-          [else (reduce-help (+ num 1) formula)]))
-  (reduce-help 0 (remove-duplicates formula equal? ))) ;we have to remove duplicates first because otherwise both instances will be removes by a process of mutually assisted destruction(MAD)
-
+(define (disjunction f g) (remove-duplicates (append f g) equal?))
 (define (clause-len I) (length I))
-
-(define (sanitycheck f g) f)
-
 ;we might end up with a redundant DNF but that's okay. We will deal with it in the main recursion
 (define (remove-var f x)
   (cond [(empty? f) empty]
@@ -27,35 +14,86 @@
   (cond [(empty? f) empty]
         [(member x (first f)) (remove-clause (rest f) x)]
         [else (cons (first f) (remove-clause (rest f) x))]))
+(define (vars f)
+  (remove-duplicates (flatten f) =))
+
+(define (list-iter f func accum)
+  (cond [(empty? f) accum]
+        [(func (length (first f)) (length accum)) (list-iter (rest f) func (first f))]
+        [else (list-iter (rest f) func accum)]))
+(define (minimum-clause f)
+  (if (empty? f) '()
+  (list-iter (rest f) < (first f))))
+(define (maximum-clause f)
+  (if (empty? f) '()
+  (list-iter (rest f) > (first f))))
+  
+
+
+(define (reduce formula)
+  (define (minimal? clause formula)
+    (if (empty? formula) true
+        (and (not (subset? (car formula) clause)) (minimal? clause (cdr formula)))))
+  (define (reduce-help num formula)
+    (cond [(= num (length formula)) empty]
+          [(minimal? (list-ref formula num) (remove (list-ref formula num) formula)) (cons (list-ref formula num) (reduce-help (+ num 1) formula))]
+          [else (reduce-help (+ num 1) formula)]))
+  ;if a DNF contains an empty clause, then it is trivially the only minimal clause
+  (if (member '() formula) '(())
+     (reduce-help 0 (remove-duplicates formula equal? )))) ;we have to remove duplicates first because otherwise both instances will be removed by a process of mutually assured destruction(MAD)
+
+
+
+(define (sanitycheck f g)
+  ;naive implementation, will make it efficient later
+  (define (samevars f g)
+    (equal? (sort (vars f) <) (sort (vars g) <)))
+  (define (maxlength-property f g)
+    (<= (length (maximum-clause f)) (length g)))
+  (define (intersection-property f g)
+    (define (nonempty-clause-formula c f)
+      (cond [(empty? f) true]
+            [(empty? (set-intersect c (first f))) false]
+            [else (nonempty-clause-formula c (rest f))]))
+      (cond [(empty? f) true]
+            [(nonempty-clause-formula (first f) g) (intersection-property (rest f) g)]
+            [else false]))
+  (define (inequality-property f g)
+    (define (sum-formula f) (foldl + 0 (map (lambda (x) (expt 2 (- (clause-len x)))) f)))
+    (>= (+ (sum-formula f) (sum-formula g)) 1))
+  (and (samevars f g)
+       (intersection-property f g)
+       (maxlength-property f g)
+       (maxlength-property g f)
+       (inequality-property f g)))
+
+
 
 ;If |F||G| <= 1, we do duality checking as follows:
-;if both are zero, then they are clearly dual
-;if both have length one, then by our sanity check conditions, the length of both implicants is also 1, and they have the same variable, so they are two identical variables, and therefore dual
-;otherwise, we have an empty formula, and a singleton implicant, which are clearly not dual
+;if either is '() (representing 0) , the other has to be '(()) (representing 1)
+;if both have length one, and one is an empty clause, then they are not dual
+;otehrwise they are dual
 (define (easydual f g)
-  (cond [(= (length f) (length g)) true]
-        [else false]))
+  (cond [(empty? f) (equal? g '(()))]
+        [(empty? g) (equal? f '(()))]
+        [(or (empty? (first f)) (empty? (first g))) false]
+        [else true]))
 
 ;we can just choose a random variable, or a variable that satisfies the frequency conditions in Fredman Khachyian. The following searches the entire min-length clause, and thus can potentially return
 ;a better variable than one that merely satisfies the FK frequency criterea
 (define (frequent f g)
-  (define (minimum-clause f)
-    (define (minimum-help f accum)
-      (cond [(empty? f) accum]
-            [(< (length (first f)) (length accum)) (minimum-help (rest f) (first f))]
-            [else (minimum-help (rest f) accum)]))
-    (minimum-help (rest f) (first f)))
   ;clause is the clause of minimum length, f is the other formula, for now just return the first element
   (define (frequent-help clause f) (car clause))
   (let ((min-f (minimum-clause f ))
         (min-g (minimum-clause g )))
     (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
 
-(define (disjunction f g) (remove-duplicates (append f g) equal?))
+
   
 (define (FK f g)
   (define (FK-irr f g)
-    (cond [ (not (sanitycheck f g)) false]
+    (printf "f:~a g:~a\n" f g)
+    (cond [ (not (sanitycheck f g)) false (printf "sanity check failed")]
           [ (<= (* (clause-len f) (clause-len g)) 1) (easydual f g)]
           [ else (letrec ((x (frequent f g))
                           (f0 (remove-var f x))
@@ -64,4 +102,10 @@
                           (g1 (remove-clause g x)))
                  (and (FK f1 (disjunction g0 g1)) (FK g1 (disjunction f0 f1))))]))
   (FK-irr (reduce f) (reduce g)))
+
+;hardcoded for now(for testing) will autogenerate later
+(define f-1 '((1) (2)))
+(define g-1 '((1 2)))
+(define f-2 '((1 3) (1 4) (2 3) (2 4) (5 7) (5 8) (6 7) (6 8)))
+(define g-2 '((1 2 5 6) (1 2 7 8) (3 4 5 6) (3 4 7 8)))
                    

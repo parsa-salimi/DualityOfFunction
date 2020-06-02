@@ -111,7 +111,7 @@
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
                           (g1 (remove-clause g x)))
-                 (tree-layout (FK (reduce f1) (reduce (disjunction g0 g1)) (+ accum 1) depth) (FK (reduce g1) (reduce (disjunction f0 f1)) (+ accum 1) depth)))])))
+                 (tree-layout #:pict(disk 30) (FK (reduce f1) (reduce (disjunction g0 g1)) (+ accum 1) depth) (FK (reduce g1) (reduce (disjunction f0 f1)) (+ accum 1) depth)))])))
 (define (fk-run f g depth) (binary-tidier (FK f g 0 depth)))
   
 
@@ -164,4 +164,7 @@
   (define bm (pict->bitmap the-pict))
   (send bm save-file name kind))
 (define (fk-save f g) (save-pict (fk-run f g) "img.png" 'png))
+
+(define (generate-svg n) (fprintf (open-output-file "depth23b.svg") (bytes->string/utf-8
+  (convert (naive-layered (FK (f-n 3) (g-n 3) 0 n)  #:y-spacing 500) 'svg-bytes))))
                    

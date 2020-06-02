@@ -1,6 +1,7 @@
 #lang racket
 (require pict)
 (require pict/tree-layout)
+(require file/convertible)
 ; f and g are lists of lists of int
 ;for example (x1 /\ x2 /\ x3)\/(x3 x4 x5) is represented by '((1 2 3) (3 4 5)). There is no ambiguity because we have assumed that our
 ;clauses are in DNF and moreover since we are only dealing with prime DNF's, we can safely ignore complements.
@@ -101,7 +102,8 @@
 
 
 ;the following does not return true or false, it just returns a tree.
-(define (FK f g tree)
+(define (FK f g accum depth)
+  (if (>= accum depth) false
     (cond [ (not (sanitycheck f g)) false]
           [ (<= (* (clause-len f) (clause-len g)) 1) false]
           [ else (letrec ((x (frequent-test f g))
@@ -109,8 +111,8 @@
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
                           (g1 (remove-clause g x)))
-                 (tree-layout (FK (reduce f1) (reduce (disjunction g0 g1)) 0) (FK (reduce g1) (reduce (disjunction f0 f1)) 1)))]))
-(define (fk-run f g) (binary-tidier (FK f g 2)))
+                 (tree-layout (FK (reduce f1) (reduce (disjunction g0 g1)) (+ accum 1) depth) (FK (reduce g1) (reduce (disjunction f0 f1)) (+ accum 1) depth)))])))
+(define (fk-run f g depth) (binary-tidier (FK f g 0 depth)))
   
 
 ;hardcoded for now(for testing) will autogenerate later
@@ -118,8 +120,48 @@
 (define g-1 '((1 2)))
 (define f-2 '((1 3) (1 4) (2 3) (2 4) (5 7) (5 8) (6 7) (6 8)))
 (define g-2 '((1 2 5 6) (1 2 7 8) (3 4 5 6) (3 4 7 8)))
+
+;in DNF, adding formula's is straightforward
+(define (add f g) (disjunction f g))
+;multiplication is a little bit harder
+(define (mult f g)
+  (define (mult-clause c g)
+    (map (lambda (x) (remove-duplicates (append c x) =)) g))
+  (define (mult-accum f accum)
+    (if (empty? f) accum
+        (mult-accum (cdr f) (disjunction (mult-clause (car f) g) accum))))
+  (reduce (mult-accum f '())))
+(define (f-n k)
+  (define (N n) (expt 2 (- (* 2 n) 1)))
+  (define (vargen a b) (range a (+ 1 b)))
+  (define (f-list k varlist)
+    (cond [(= k 1) (map list varlist)]
+          [else
+           (letrec ((newk (N (- k 1)))
+                 (list-1 (take varlist newk))
+                 (list-2 (take (drop varlist newk) newk))
+                 (list-3 (take (drop varlist (* 2 newk))  newk))
+                 (list-4 (take (drop varlist (* 3 newk))  newk)))
+           (add (mult (f-list (- k 1) list-1) (f-list (- k 1) list-2))
+                (mult (f-list (- k 1) list-3) (f-list (- k 1) list-4))))]))
+  (f-list k (vargen 1 (N k))))
+(define (g-n k)
+  (define (N n) (expt 2 (- (* 2 n) 1)))
+  (define (vargen a b) (range a (+ 1 b)))
+  (define (g-list k varlist)
+    (cond [(= k 1) (list varlist)]
+          [else
+           (letrec ((newk (N (- k 1)))
+                 (list-1 (take varlist newk))
+                 (list-2 (take (drop varlist newk) newk))
+                 (list-3 (take (drop varlist (* 2 newk))  newk))
+                 (list-4 (take (drop varlist (* 3 newk))  newk)))
+           (mult (add (g-list (- k 1) list-1) (g-list (- k 1) list-2))
+                 (add (g-list (- k 1) list-3) (g-list (- k 1) list-4))))]))
+  (g-list k (vargen 1 (N k))))
+
 (define (save-pict the-pict name kind)
   (define bm (pict->bitmap the-pict))
   (send bm save-file name kind))
-(define (fk-save f g) (fk-run f g) "img.png" 'png)
+(define (fk-save f g) (save-pict (fk-run f g) "img.png" 'png))
                    

@@ -101,9 +101,9 @@
 ;tree=1 : right
 (define (FK f g tree)
     (begin
-     (cond [(= tree 0) (printf "left:\t f:~a g:~a\n" f g)]
-           [(= tree 1) (printf "\t\t right:\t f:~a g:~a\n" f g)]
-           [else (printf "\troot:\t f:~a g:~a\n" f g)])
+     ;(cond [(= tree 0) (printf "left:\t f:~a g:~a\n" f g)]
+     ;      [(= tree 1) (printf "\t\t right:\t f:~a g:~a\n" f g)]
+     ;      [else (printf "\troot:\t f:~a g:~a\n" f g)])
     (cond [ (not (sanitycheck f g)) false (printf "sanity check failed")]
           [ (<= (* (clause-len f) (clause-len g)) 1) (easydual f g)]
           [ else (letrec ((x (frequent f g))
@@ -159,4 +159,5 @@
 (define g-1 '((1 2)))
 (define f-2 '((1 3) (1 4) (2 3) (2 4) (5 7) (5 8) (6 7) (6 8)))
 (define g-2 '((1 2 5 6) (1 2 7 8) (3 4 5 6) (3 4 7 8)))
+
                    

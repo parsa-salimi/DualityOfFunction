@@ -97,13 +97,14 @@
   (let ((min-f (minimum-clause f ))
         (min-g (minimum-clause g )))
     (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
+(define (frequent-test f g) (first (vars f)))
 
 
 ;the following does not return true or false, it just returns a tree.
 (define (FK f g tree)
     (cond [ (not (sanitycheck f g)) false]
           [ (<= (* (clause-len f) (clause-len g)) 1) false]
-          [ else (letrec ((x (frequent f g))
+          [ else (letrec ((x (frequent-test f g))
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))

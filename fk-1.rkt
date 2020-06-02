@@ -113,6 +113,45 @@
                           (g1 (remove-clause g x)))
                  (and (FK (reduce f1) (reduce (disjunction g0 g1)) 0) (FK (reduce g1) (reduce (disjunction f0 f1)) 1)))])))
 (define (fk-run f g) (FK f g 2))
+
+;in DNF, adding formula's is straightforward
+(define (add f g) (disjunction f g))
+;multiplication is a little bit harder
+(define (mult f g)
+  (define (mult-clause c g)
+    (map (lambda (x) (remove-duplicates (append c x) =)) g))
+  (define (mult-accum f accum)
+    (if (empty? f) accum
+        (mult-accum (cdr f) (disjunction (mult-clause (car f) g) accum))))
+  (reduce (mult-accum f '())))
+(define (f-n k)
+  (define (N n) (expt 2 (- (* 2 n) 1)))
+  (define (vargen a b) (range a (+ 1 b)))
+  (define (f-list k varlist)
+    (cond [(= k 1) (map list varlist)]
+          [else
+           (letrec ((newk (N (- k 1)))
+                 (list-1 (take varlist newk))
+                 (list-2 (take (drop varlist newk) newk))
+                 (list-3 (take (drop varlist (* 2 newk))  newk))
+                 (list-4 (take (drop varlist (* 3 newk))  newk)))
+           (add (mult (f-list (- k 1) list-1) (f-list (- k 1) list-2))
+                (mult (f-list (- k 1) list-3) (f-list (- k 1) list-4))))]))
+  (f-list k (vargen 1 (N k))))
+(define (g-n k)
+  (define (N n) (expt 2 (- (* 2 n) 1)))
+  (define (vargen a b) (range a (+ 1 b)))
+  (define (g-list k varlist)
+    (cond [(= k 1) (list varlist)]
+          [else
+           (letrec ((newk (N (- k 1)))
+                 (list-1 (take varlist newk))
+                 (list-2 (take (drop varlist newk) newk))
+                 (list-3 (take (drop varlist (* 2 newk))  newk))
+                 (list-4 (take (drop varlist (* 3 newk))  newk)))
+           (mult (add (g-list (- k 1) list-1) (g-list (- k 1) list-2))
+                 (add (g-list (- k 1) list-3) (g-list (- k 1) list-4))))]))
+  (g-list k (vargen 1 (N k))))
   
 
 ;hardcoded for now(for testing) will autogenerate later

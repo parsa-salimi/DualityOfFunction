@@ -102,17 +102,19 @@
 
 
 ;the following does not return true or false, it just returns a tree.
+(define counter (box 0))
 (define (FK f g accum depth)
   (if (>= accum depth) false
-    (cond [ (not (sanitycheck f g)) false]
-          [ (<= (* (clause-len f) (clause-len g)) 1) false]
-          [ else (letrec ((x (frequent-test f g))
+      (begin (set-box! counter (+ 1 (unbox counter)))
+    (cond [ (not (sanitycheck f g)) (tree-layout #:pict(disk #:color "blue" 15))]
+          [ (<= (* (clause-len f) (clause-len g)) 1) (if (easydual f g) (tree-layout #:pict(disk #:color "red" 15)) (tree-layout #:pict(disk #:color "green" 15)))]
+          [ else (letrec ((x (frequent f g))
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
                           (g1 (remove-clause g x)))
-                 (tree-layout #:pict(disk 15) (FK (reduce f1) (reduce (disjunction g0 g1)) (+ accum 1) depth) (FK (reduce g1) (reduce (disjunction f0 f1)) (+ accum 1) depth)))])))
-(define (fk-run f g depth) (binary-tidier (FK f g 0 depth)))
+                 (tree-layout #:pict(text (number->string x)) (FK (reduce f1) (reduce (disjunction g0 g1)) (+ accum 1) depth) (FK (reduce g1) (reduce (disjunction f0 f1)) (+ accum 1) depth)))]))))
+(define (fk-run f g depth) (naive-layered (FK f g 0 depth)))
   
 
 ;hardcoded for now(for testing) will autogenerate later
@@ -165,6 +167,14 @@
   (send bm save-file name kind))
 (define (fk-save f g) (save-pict (fk-run f g) "img.png" 'png))
 
-(define (generate-svg n) (fprintf (open-output-file "depth35g.svg") (bytes->string/utf-8
-  (convert (naive-layered (FK (f-n 3) (g-n 3) 0 n)  #:x-spacing 1 #:y-spacing 200) 'svg-bytes))))
+(define (generate-svg f g filename depth spacing) (fprintf (open-output-file filename) (bytes->string/utf-8
+  (convert (naive-layered (FK f g 0 depth) #:x-spacing 1 #:y-spacing spacing) 'svg-bytes))))
+;creates a list of length [depth] containing the accumulative number of vertices at each depth. NOT EFFICIENT
+(define (densitylist depth)
+  (define (densityhelp a accum)
+    (cond [(= a accum) '()]
+          [else (set-box! counter 0)
+                 (FK (f-n 3) (g-n 3) 0 a)
+                 (cons (unbox counter) (densityhelp (+ a 1) accum))]))
+  (densityhelp 0 depth))
                    

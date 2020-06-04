@@ -57,8 +57,7 @@
     (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
 
 
-;tree=0 : left
-;tree=1 : right
+
 (define (FK f g tree)
     (begin
      ;(cond [(= tree 0) (printf "left:\t f:~a g:~a\n" f g)]

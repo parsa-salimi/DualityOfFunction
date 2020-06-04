@@ -1,7 +1,7 @@
 #lang racket
 (require "DNF.rkt")
 (require "generator.rkt")
-(provide sanitycheck easydual frequent)
+(provide sanitycheck easydual frequent-constructive frequent-max)
 
 
 (define (sanitycheck f g)
@@ -39,9 +39,11 @@
         [(or (empty? (first f)) (empty? (first g))) false]
         [else true]))
 
-;we can just choose a random variable, or a variable that satisfies the frequency conditions in Fredman Khachyian. The following searches the entire min-length clause, and thus can potentially return
-;a better variable than one that merely satisfies the FK frequency criterea
-(define (frequent f g)
+
+(define (frequency var formula)
+  (if (empty? formula) 0
+  (/ (length (filter (lambda (x) (member var x)) formula)) (length formula))))
+(define (frequent-constructive f g)
   ;clause is the clause of minimum length, f is the other formula, for now just return the first element
   (define (frequent-help clause f)
     (define (iterate func list accum lastfrequency)
@@ -49,23 +51,27 @@
             [else (let ((frequency (func (first list))))
                     (if (> frequency lastfrequency) (iterate func (rest list) (first list) frequency)
                         (iterate func (rest list) accum lastfrequency)))]))
-    (define (frequency var formula)
-      (length (filter (lambda (x) (member var x)) formula)))
     (iterate (lambda (x) (frequency x f)) (rest clause) (first clause) 0))
   (let ((min-f (minimum-clause f ))
         (min-g (minimum-clause g )))
     (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
-
-
+(define (frequent-max f g)
+    (define (total-frequency var)
+      (max (frequency var f) (frequency var g)))
+    (define (iterate func list accum lastfrequency)
+      (cond [(empty? list) accum]
+            [else (let ((frequency (func (first list))))
+                    (if (> frequency lastfrequency) (iterate func (rest list) (first list) frequency)
+                        (iterate func (rest list) accum lastfrequency)))]))
+  (iterate total-frequency (rest (vars f)) (first (vars f)) 0))
+  
 
 (define (FK f g tree)
     (begin
-     ;(cond [(= tree 0) (printf "left:\t f:~a g:~a\n" f g)]
-     ;      [(= tree 1) (printf "\t\t right:\t f:~a g:~a\n" f g)]
-     ;      [else (printf "\troot:\t f:~a g:~a\n" f g)])
+     ;debuging info goes here
     (cond [ (not (sanitycheck f g)) false (printf "sanity check failed")]
           [ (<= (* (clause-len f) (clause-len g)) 1) (easydual f g)]
-          [ else (letrec ((x (frequent f g))
+          [ else (letrec ((x (frequent-max f g))
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))

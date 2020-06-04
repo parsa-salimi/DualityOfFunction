@@ -40,9 +40,13 @@
         [else true]))
 
 
+;Here we implement several algorithms for choosing the splitting variable.
+;When there was a sacrifice between coding something in a robust, easy to modify way vs an efficient implementation, I chose the more robust method.
 (define (frequency var formula)
   (if (empty? formula) 0
   (/ (length (filter (lambda (x) (member var x)) formula)) (length formula))))
+
+;this is inspired from the original FK paper.
 (define (frequent-constructive f g)
   ;clause is the clause of minimum length, f is the other formula, for now just return the first element
   (define (frequent-help clause f)
@@ -95,6 +99,7 @@
                           (g1 (remove-clause g x)))
                  (and (FK (reduce f1) (reduce (disjunction g0 g1)) 0) (FK (reduce g1) (reduce (disjunction f0 f1)) 1)))])))
 (define (fk-run f g) (FK f g 2))
+
 
 
 

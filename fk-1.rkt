@@ -1,47 +1,7 @@
 #lang racket
-; f and g are lists of lists of int
-;for example (x1 /\ x2 /\ x3)\/(x3 x4 x5) is represented by '((1 2 3) (3 4 5)). There is no ambiguity because we have assumed that our
-;clauses are in DNF and moreover since we are only dealing with prime DNF's, we can safely ignore complements.
-(define (disjunction f g) (remove-duplicates (append f g) equal?))
-(define (clause-len I) (length I))
-;we might end up with a redundant DNF but that's okay. We will deal with it in the main recursion
-(define (remove-var f x)
-  (cond [(empty? f) empty]
-        [(member x (first f)) (cons (remove x (first f)) (remove-var (rest f) x))]
-        [else (cons (first f) (remove-var (rest f) x))]))
-
-(define (remove-clause f x)
-  (cond [(empty? f) empty]
-        [(member x (first f)) (remove-clause (rest f) x)]
-        [else (cons (first f) (remove-clause (rest f) x))]))
-(define (vars f)
-  (remove-duplicates (flatten f) =))
-
-(define (list-iter f func accum)
-  (cond [(empty? f) accum]
-        [(func (length (first f)) (length accum)) (list-iter (rest f) func (first f))]
-        [else (list-iter (rest f) func accum)]))
-(define (minimum-clause f)
-  (if (empty? f) '()
-  (list-iter (rest f) < (first f))))
-(define (maximum-clause f)
-  (if (empty? f) '()
-  (list-iter (rest f) > (first f))))
-  
-
-
-(define (reduce formula)
-  (define (minimal? clause formula)
-    (if (empty? formula) true
-        (and (not (subset? (car formula) clause)) (minimal? clause (cdr formula)))))
-  (define (reduce-help num formula)
-    (cond [(= num (length formula)) empty]
-          [(minimal? (list-ref formula num) (remove (list-ref formula num) formula)) (cons (list-ref formula num) (reduce-help (+ num 1) formula))]
-          [else (reduce-help (+ num 1) formula)]))
-  ;if a DNF contains an empty clause, then it is trivially the only minimal clause
-  (if (member '() formula) '(())
-     (reduce-help 0 (remove-duplicates formula equal? )))) ;we have to remove duplicates first because otherwise both instances will be removed by a process of mutually assured destruction(MAD)
-
+(require "DNF.rkt")
+(require "generator.rkt")
+(provide sanitycheck easydual frequent)
 
 
 (define (sanitycheck f g)
@@ -114,50 +74,10 @@
                  (and (FK (reduce f1) (reduce (disjunction g0 g1)) 0) (FK (reduce g1) (reduce (disjunction f0 f1)) 1)))])))
 (define (fk-run f g) (FK f g 2))
 
-;in DNF, adding formula's is straightforward
-(define (add f g) (disjunction f g))
-;multiplication is a little bit harder
-(define (mult f g)
-  (define (mult-clause c g)
-    (map (lambda (x) (remove-duplicates (append c x) =)) g))
-  (define (mult-accum f accum)
-    (if (empty? f) accum
-        (mult-accum (cdr f) (disjunction (mult-clause (car f) g) accum))))
-  (reduce (mult-accum f '())))
-(define (f-n k)
-  (define (N n) (expt 2 (- (* 2 n) 1)))
-  (define (vargen a b) (range a (+ 1 b)))
-  (define (f-list k varlist)
-    (cond [(= k 1) (map list varlist)]
-          [else
-           (letrec ((newk (N (- k 1)))
-                 (list-1 (take varlist newk))
-                 (list-2 (take (drop varlist newk) newk))
-                 (list-3 (take (drop varlist (* 2 newk))  newk))
-                 (list-4 (take (drop varlist (* 3 newk))  newk)))
-           (add (mult (f-list (- k 1) list-1) (f-list (- k 1) list-2))
-                (mult (f-list (- k 1) list-3) (f-list (- k 1) list-4))))]))
-  (f-list k (vargen 1 (N k))))
-(define (g-n k)
-  (define (N n) (expt 2 (- (* 2 n) 1)))
-  (define (vargen a b) (range a (+ 1 b)))
-  (define (g-list k varlist)
-    (cond [(= k 1) (list varlist)]
-          [else
-           (letrec ((newk (N (- k 1)))
-                 (list-1 (take varlist newk))
-                 (list-2 (take (drop varlist newk) newk))
-                 (list-3 (take (drop varlist (* 2 newk))  newk))
-                 (list-4 (take (drop varlist (* 3 newk))  newk)))
-           (mult (add (g-list (- k 1) list-1) (g-list (- k 1) list-2))
-                 (add (g-list (- k 1) list-3) (g-list (- k 1) list-4))))]))
-  (g-list k (vargen 1 (N k))))
+
+
   
 
-;hardcoded for now(for testing) will autogenerate later
-(define f-1 '((1) (2)))
-(define g-1 '((1 2)))
-(define f-2 '((1 3) (1 4) (2 3) (2 4) (5 7) (5 8) (6 7) (6 8)))
-(define g-2 '((1 2 5 6) (1 2 7 8) (3 4 5 6) (3 4 7 8)))
+
 
                    

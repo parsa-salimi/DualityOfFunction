@@ -1,7 +1,7 @@
 #lang racket
 (require "DNF.rkt")
 (require "generator.rkt")
-(provide sanitycheck easydual frequency frequent-constructive frequent-max frequent-threshold)
+(provide sanitycheck easydual frequent-constructive frequent-max)
 
 
 (define (sanitycheck f g)
@@ -51,26 +51,10 @@
             [else (let ((frequency (func (first list))))
                     (if (> frequency lastfrequency) (iterate func (rest list) (first list) frequency)
                         (iterate func (rest list) accum lastfrequency)))]))
-    (iterate (lambda (x) (frequency x f)) (rest clause) (first clause) (frequency (first clause) f)))
+    (iterate (lambda (x) (frequency x f)) (rest clause) (first clause) 0))
   (let ((min-f (minimum-clause f ))
         (min-g (minimum-clause g )))
     (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
-
-;returns a list of all the clauses satisfying the threshold
-(define (threshold f g)
-    (define (total-frequency var)
-      (max (frequency var f) (frequency var g)))
-    (define guarantee (/ 1 (log (+ (length f) (length g)) 2)))
-    (define (iterate func list accumlist)
-      (cond [(empty? list) accumlist]
-            [else (let ((frequency (func (first list))))
-                    (if (> frequency guarantee) (iterate func (rest list)  (cons (first list) accumlist))
-                        (iterate func (rest list) accumlist )))]))
-  (iterate total-frequency (vars f) '()))
-
-(define (frequent-threshold f g)
-  (first (sort (threshold f g) <)))
-  
 (define (frequent-max f g)
     (define (total-frequency var)
       (max (frequency var f) (frequency var g)))
@@ -79,8 +63,7 @@
             [else (let ((frequency (func (first list))))
                     (if (> frequency lastfrequency) (iterate func (rest list) (first list) frequency)
                         (iterate func (rest list) accum lastfrequency)))]))
-  (iterate total-frequency (rest (vars f)) (first (vars f)) (total-frequency (first (vars f)))))
-  
+  (iterate total-frequency (rest (vars f)) (first (vars f)) 0))
   
 
 (define (FK f g tree)
@@ -88,7 +71,7 @@
      ;debuging info goes here
     (cond [ (not (sanitycheck f g)) false (printf "sanity check failed")]
           [ (<= (* (clause-len f) (clause-len g)) 1) (easydual f g)]
-          [ else (letrec ((x (frequent-constructive f g))
+          [ else (letrec ((x (frequent-max f g))
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))

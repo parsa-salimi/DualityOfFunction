@@ -46,6 +46,11 @@
   (if (empty? formula) 0
   (/ (length (filter (lambda (x) (member var x)) formula)) (length formula))))
 
+(define (frequent-cons varlist)
+  (lambda (f g)
+    (define (frequent-help clause) clause)
+    (first varlist)))
+
 ;this is inspired from the original FK paper.
 (define (frequent-constructive f g)
   ;clause is the clause of minimum length, f is the other formula, for now just return the first element

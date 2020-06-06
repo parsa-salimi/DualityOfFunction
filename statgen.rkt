@@ -34,7 +34,7 @@
           [ (<= (* (clause-len f) (clause-len g)) 1) (if (easydual f g) #t #f)]
           [ else
             (begin (set-box! (list-ref counters accum) (+ 1 (unbox (list-ref counters accum))))
-            (letrec ((x (tiebreaker (pivot f g)))
+            (letrec ((x (tiebreaker (pivot (vars f) f g)))
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
@@ -48,6 +48,11 @@
 ;spacing is the y-spacing between the nodes, set to #f for default spacing
 (define (generate-svg treepict filename depth spacing) (fprintf (open-output-file filename) (bytes->string/utf-8
   (convert (naive-layered treepict) #:x-spacing 1 #:y-spacing spacing) 'svg-bytes)))
+
+
+(define (gridgen pivotlist tblist)
+  (define possibilities (cartesian-product pivotlist tblist))
+  (for-each (lambda (x) (begin (display x) (printf ":  ~a \n" (leafcount (FK-treelist (f-n 3) (g-n 3) 0 (first x) (second x)))))) possibilities))
 
 
 

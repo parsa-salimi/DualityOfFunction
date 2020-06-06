@@ -75,7 +75,7 @@
   (for-each (lambda (x)
               (vector-map (lambda (y) (vector-fill! y 0)) gridcounters)
               (gridgen (FK-treelist (f-n 3) (g-n 3) 0 (first x) (second x)) 0 0)
-              (generate-csv (string-replace (string-replace (format "~a~a.csv" (first x) (second x)) "#<procedure:" "") ">" "")))
+              (generate-csv (string-replace (string-replace (format "csv\\~a-~a.csv" (first x) (second x)) "#<procedure:" "") ">" "")))
             possibilities))
 
 

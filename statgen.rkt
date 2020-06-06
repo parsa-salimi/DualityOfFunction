@@ -5,7 +5,7 @@
 (require pict)
 (require pict/tree-layout)
 (require file/convertible)
-
+(require racket/vector)
 ; A tree is recursively defined as :
 ; #f (a terminal node
 ; a list '(node l r), where node is a node(currently stores frequency/ index information, and l and r are trees
@@ -20,6 +20,11 @@
         [(equal? (cdr tree) '(#t #t)) 1]
         [(node-leaf? tree) (+ 1 (leafcount (left-tree tree)) (leafcount (right-tree tree)))]
         [else (+ (leafcount (left-tree tree)) (leafcount (right-tree tree)))]))
+
+
+;a 30*30 array
+(define gridcounters (build-vector 30 (lambda (x) (make-vector 30 0))))
+
 ;keeps track of nodes of each depth
 (define counters (map (lambda (x) (box 0)) (range 0 50)))
 
@@ -49,12 +54,29 @@
 (define (generate-svg treepict filename depth spacing) (fprintf (open-output-file filename) (bytes->string/utf-8
   (convert (naive-layered treepict) #:x-spacing 1 #:y-spacing spacing) 'svg-bytes)))
 
-
-(define (gridgen pivotlist tblist)
+(define (gridgen-pivot pivotlist tblist)
   (define possibilities (cartesian-product pivotlist tblist))
   (for-each (lambda (x) (begin (display x) (printf ":  ~a \n" (leafcount (FK-treelist (f-n 3) (g-n 3) 0 (first x) (second x)))))) possibilities))
 
-
+(define (arrayset dim1 dim2 array)
+  (vector-set! (vector-ref array dim2) dim1 (+ 1 (vector-ref (vector-ref array dim2) dim1))))
+(define (gridgen tree leftcount rightcount)
+  (cond [(empty-tree? tree) 0]
+        [(node-leaf? tree) (begin (arrayset leftcount rightcount gridcounters) (gridgen (left-tree tree) (+ 1 leftcount) rightcount) (gridgen (right-tree tree) leftcount (+ 1 rightcount)))]
+        [else   (begin (gridgen (left-tree tree) (+ 1 leftcount) rightcount) (gridgen (right-tree tree) leftcount (+ 1 rightcount)))]))
+(define (generate-csv filename)
+  (define outputport (open-output-file filename))
+  (vector-map (lambda (x)
+             (vector-map (lambda (y) (fprintf outputport "~a," y)) x)
+             (fprintf outputport "\n"))
+             gridcounters))
+(define (generate-all-grids pivotlist tblist)
+  (define possibilities (cartesian-product pivotlist tblist))
+  (for-each (lambda (x)
+              (vector-map (lambda (y) (vector-fill! y 0)) gridcounters)
+              (gridgen (FK-treelist (f-n 3) (g-n 3) 0 (first x) (second x)) 0 0)
+              (generate-csv (string-replace (string-replace (format "~a~a.csv" (first x) (second x)) "#<procedure:" "") ">" "")))
+            possibilities))
 
 
                    

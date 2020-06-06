@@ -1,7 +1,7 @@
 #lang racket
 (require "DNF.rkt")
 (require "generator.rkt")
-(provide sanitycheck easydual frequency frequent-constructive frequent-max frequent-threshold)
+(provide sanitycheck easydual frequency fthresh fcons fmin fmax fconsmax tbnaive tbrand tbnaivelast tblex)
 
 
 (define (sanitycheck f g)
@@ -27,8 +27,6 @@
        (maxlength-property g f)
        (inequality-property f g)))
 
-
-
 ;If |F||G| <= 1, we do duality checking as follows:
 ;if either is '() (representing 0) , the other has to be '(()) (representing 1)
 ;if both have length one, and one is an empty clause, then they are not dual
@@ -40,70 +38,60 @@
         [else true]))
 
 
-;Here we implement several algorithms for choosing the splitting variable.
-;When there was a sacrifice between coding something in a robust, easy to modify way vs an efficient implementation, I chose the more robust method.
+
 (define (frequency var formula)
   (if (empty? formula) 0
   (/ (length (filter (lambda (x) (member var x)) formula)) (length formula))))
+(define (total-frequency var f g)
+  (max (frequency var f) (frequency var g)))
 
-(define (frequent-cons varlist)
-  (lambda (f g)
-    (define (frequent-help clause) clause)
-    (first varlist)))
+;Here we implement several algorithms for choosing the splitting variable.
+;When there was a sacrifice between coding something in a robust, easy to modify way vs an efficient implementation, I chose the more robust method.
+(define (fthresh varlist f g)
+    (define guarantee (/ 1 (+ (length f) (length g))))
+    (filter (lambda (x) (>= (total-frequency x f g) guarantee)) varlist))
 
-;this is inspired from the original FK paper.
-(define (frequent-constructive f g)
-  ;clause is the clause of minimum length, f is the other formula, for now just return the first element
-  (define (frequent-help clause f)
-    (define (iterate func list accum lastfrequency)
-      (cond [(empty? list) accum]
-            [else (let ((frequency (func (first list))))
-                    (if (> frequency lastfrequency) (iterate func (rest list) (first list) frequency)
-                        (iterate func (rest list) accum lastfrequency)))]))
-    (iterate (lambda (x) (frequency x f)) (rest clause) (first clause) (frequency (first clause) f)))
-  (let ((min-f (minimum-clause f ))
-        (min-g (minimum-clause g )))
-    (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
+(define (fcons varlist f g)
+    (define guarantee (/ 1 (+ (length f) (length g))))
+    (define (frequent-help clause formula)
+      (filter (lambda (x) (>= (frequency x formula) guarantee)) clause))
+    (let ((min-f (minimum-clause f))
+          (min-g (minimum-clause g)))
+      (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
 
-;returns a list of all the clauses satisfying the threshold
-(define (threshold f g)
-    (define (total-frequency var)
-      (max (frequency var f) (frequency var g)))
-    (define guarantee (/ 1 (log (+ (length f) (length g)) 2)))
-    (define (iterate func list accumlist)
-      (cond [(empty? list) accumlist]
-            [else (let ((frequency (func (first list))))
-                    (if (> frequency guarantee) (iterate func (rest list)  (cons (first list) accumlist))
-                        (iterate func (rest list) accumlist )))]))
-  (iterate total-frequency (vars f) '()))
+(define (fmin varlist f g) varlist)
 
-(define (frequent-threshold f g)
-  (first (sort (threshold f g) <)))
-  
-(define (frequent-max f g)
-    (define (total-frequency var)
-      (max (frequency var f) (frequency var g)))
-    (define (iterate func list accum lastfrequency)
-      (cond [(empty? list) accum]
-            [else (let ((frequency (func (first list))))
-                    (if (> frequency lastfrequency) (iterate func (rest list) (first list) frequency)
-                        (iterate func (rest list) accum lastfrequency)))]))
-  (iterate total-frequency (rest (vars f)) (first (vars f)) (total-frequency (first (vars f)))))
-  
-  
+(define (fmax varlist f g)
+    (define (compute-max-frequency)
+      (define (iterate accum list)
+        (cond [(empty? list) accum]
+              [(> (total-frequency (car list) f g) accum) (iterate (total-frequency (car list) f g) (cdr list))]
+              [else (iterate accum (cdr list))]))
+      (iterate 0 varlist))
+    (define maxfrequency (compute-max-frequency))
+    (filter (lambda (x) (= (total-frequency x f g) maxfrequency)) varlist))
 
-(define (FK f g tree)
+(define (fconsmax varlist f g)
+    (fmax (fcons varlist f g) f g))
+
+;now for tiebreakers
+(define (tbnaive varlist) (first varlist))
+(define (tblex varlist)   (argmin (lambda (x) x) varlist))
+(define (tbnaivelast varlist) (last varlist))
+(define (tbrand varlist) (list-ref varlist (random (length varlist))))
+
+(define (FK f g pivot tiebreaker)
     (begin
      ;debuging info goes here
-    (cond [ (not (sanitycheck f g)) false (printf "sanity check failed")]
+    (cond [ (not (sanitycheck f g)) false (error "sanity check failed")]
           [ (<= (* (clause-len f) (clause-len g)) 1) (easydual f g)]
-          [ else (letrec ((x (frequent-constructive f g))
+          [ else (letrec ((x (tiebreaker (pivot (vars f) f g))) 
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
                           (g1 (remove-clause g x)))
-                 (and (FK (reduce f1) (reduce (disjunction g0 g1)) 0) (FK (reduce g1) (reduce (disjunction f0 f1)) 1)))])))
-(define (fk-run f g) (FK f g 2))
+                 (and (FK (reduce f1) (reduce (disjunction g0 g1)) pivot tiebreaker) (FK (reduce g1) (reduce (disjunction f0 f1)) pivot tiebreaker)))])))
+
 
 
 

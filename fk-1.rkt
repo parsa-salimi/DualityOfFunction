@@ -3,13 +3,17 @@
 (require "generator.rkt")
 (provide sanitycheck easydual frequency fthresh fcons fmin fmax fconsmax tbnaive tbrand tbnaivelast tblex)
 
-
-(define (sanitycheck f g)
-  ;naive implementation, will make it efficient later
+;returns a list, which tells us what check we didn't pass exactly(if we didn't pass some test), or is just '(#t #t #t #t) if we pass all tests.
+;first element : same variables property. If false returns a list of variables that are in f but not in g.
+;second element:intersection property. returns the clause of empty intersection if false
+;third and fourth  elemnts:  maaximum clause. returns aa clause with length greater than |g| if false.
+(define (sanitycheck-list f g)
   (define (samevars f g)
-    (equal? (sort (vars f) <) (sort (vars g) <)))
+    (define diff (if (> (length f) (length g)) (set-subtract f g) (set-subtract g f)))
+    (if (empty? diff) #t diff))
   (define (maxlength-property f g)
-    (<= (length (maximum-clause f)) (length g)))
+    (define max (maximum-clause f))
+    (if (<= (length max) (length g)) #t max))
   (define (intersection-property f g)
     (define (nonempty-clause-formula c f)
       (cond [(empty? f) true]
@@ -17,15 +21,17 @@
             [else (nonempty-clause-formula c (rest f))]))
       (cond [(empty? f) true]
             [(nonempty-clause-formula (first f) g) (intersection-property (rest f) g)]
-            [else false]))
+            [else (first f)]))
   (define (inequality-property f g)
     (define (sum-formula f) (foldl + 0 (map (lambda (x) (expt 2 (- (clause-len x)))) f)))
-    (>= (+ (sum-formula f) (sum-formula g)) 1))
-  (and (samevars f g)
+    (if (>= (+ (sum-formula f) (sum-formula g)) 1) #t 'inequality))
+  (list (samevars f g)
        (intersection-property f g)
        (maxlength-property f g)
        (maxlength-property g f)
        (inequality-property f g)))
+;for backward compatibility 
+(define (sanitycheck f g) (equal? (sanitycheck-list f g) '(#t #t #t #t #t)))
 
 ;If |F||G| <= 1, we do duality checking as follows:
 ;if either is '() (representing 0) , the other has to be '(()) (representing 1)
@@ -80,10 +86,16 @@
 (define (tbnaivelast varlist) (last varlist))
 (define (tbrand varlist) (list-ref varlist (random (length varlist))))
 
+(define (gencertificate f g failedlist)
+         ;if empty-intersection fails, the characteristic vector of the certificate clause is an answer:
+  (cond [(list? (second failedtest)) (char-vector (second failedtest) f)]
+        ;next check the samevars property. remember that we have alist of variables not contained in the other formula
+        [(list? (first failedtest))
+
 (define (FK f g pivot tiebreaker)
     (begin
-     ;debuging info goes here
-    (cond [ (not (sanitycheck f g)) false (error "sanity check failed")]
+      (define sanitylist (sanitycheck-list f g))
+    (cond [ (not (equal? sanitylist '(#t #t #t #t))) (gencertificate f g sanitylist)]
           [ (<= (* (clause-len f) (clause-len g)) 1) (easydual f g)]
           [ else (letrec ((x (tiebreaker (pivot (vars f) f g))) 
                           (f0 (remove-var f x))

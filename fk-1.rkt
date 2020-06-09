@@ -1,7 +1,7 @@
 #lang racket
 (require "DNF.rkt")
 (require "generator.rkt")
-(provide sanitycheck easydual frequency fthresh fcons fmin fmax fconsmax tbnaive tbrand tbnaivelast tblex)
+(provide sanitycheck easydual frequency fthresh fcons fmin fmax fconsmax tbnaive tbrand tbnaivelast tblex fthomas)
 
 ;returns a list, which tells us what check we didn't pass exactly(if we didn't pass some test), or is just '(#t #t #t #t) if we pass all tests.
 ;first element : same variables property. If false returns a list of variables that are in f but not in g.
@@ -9,7 +9,9 @@
 ;third and fourth  elemnts:  maaximum clause. returns aa clause with length greater than |g| if false.
 (define (sanitycheck-list f g)
   (define (samevars f g)
-    (define diff (if (> (length f) (length g)) (set-subtract f g) (set-subtract g f)))
+    (define var-f (vars f))
+    (define var-g (vars g))
+    (define diff (if (> (length var-f) (length var-g)) (set-subtract var-f var-g) (set-subtract var-g var-f)))
     (if (empty? diff) #t diff))
   (define (maxlength-property f g)
     (define max (maximum-clause f))
@@ -31,7 +33,8 @@
        (maxlength-property g f)
        (inequality-property f g)))
 ;for backward compatibility 
-(define (sanitycheck f g) (equal? (sanitycheck-list f g) '(#t #t #t #t #t)))
+(define (sanitycheck f g)
+  (equal? (sanitycheck-list f g) '(#t #t #t #t #t)))
 
 ;If |F||G| <= 1, we do duality checking as follows:
 ;if either is '() (representing 0) , the other has to be '(()) (representing 1)
@@ -80,23 +83,39 @@
 (define (fconsmax varlist f g)
     (fmax (fcons varlist f g) f g))
 
+;this just returns a list of one element; meant to replicate Thomas' code
+(define (fthomas  varlist f g)
+  (define (iter-max lst max  ind)
+    (cond [(empty? lst) (list ind)]
+          [(> (total-frequency (first lst) f g) max) (iter-max (rest lst) (total-frequency (first lst) f g) (first lst))]
+          [else (iter-max (rest lst) max ind)]))
+  (iter-max (sort (fthresh (sort (vars f) <) f g) <) 0 0))
+
 ;now for tiebreakers
 (define (tbnaive varlist) (first varlist))
 (define (tblex varlist)   (argmin (lambda (x) x) varlist))
 (define (tbnaivelast varlist) (last varlist))
 (define (tbrand varlist) (list-ref varlist (random (length varlist))))
 
-(define (gencertificate f g failedlist)
-         ;if empty-intersection fails, the characteristic vector of the certificate clause is an answer:
-  (cond [(list? (second failedtest)) (char-vector (second failedtest) f)]
+;(define (gencertificate f g failedlist)
+;         ;if empty-intersection fails, the characteristic vector of the certificate clause is an answer:
+;  (cond [(list? (second failedtest)) (char-vector (second failedtest) f)]
         ;next check the samevars property. remember that we have alist of variables not contained in the other formula
-        [(list? (first failedtest))
-
+;        [(list? (first failedtest))
+(define (simpledisjunction? f g)
+  (define (listofones g)
+    (cond [(empty? g) #t]
+          [(= (length (first g)) 1) (listofones (rest g))]
+          [else #f]))
+  (and (= (length f) 1)
+       (listofones g)))
 (define (FK f g pivot tiebreaker)
     (begin
       (define sanitylist (sanitycheck-list f g))
-    (cond [ (not (equal? sanitylist '(#t #t #t #t))) (gencertificate f g sanitylist)]
+    (cond [ (not (equal? sanitylist '(#t #t #t #t #t))) #f] ;(gencertificate f g sanitylist)]
           [ (<= (* (clause-len f) (clause-len g)) 1) (easydual f g)]
+          [(simpledisjunction? g f) #t]
+          [(simpledisjunction? f g) #t]
           [ else (letrec ((x (tiebreaker (pivot (vars f) f g))) 
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))

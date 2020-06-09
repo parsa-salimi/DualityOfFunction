@@ -16,9 +16,9 @@
 (define (node-leaf? tree) (member #t tree))
 (define (empty-tree? tree) (not (list? tree)))
 (define (leafcount tree)
-  (cond [(empty-tree? tree) 0]
-        [(equal? (cdr tree) '(#t #t)) 1]
-        [(node-leaf? tree) (+ 1 (leafcount (left-tree tree)) (leafcount (right-tree tree)))]
+  (cond [(empty-tree? tree) 1]
+        ;[(equal? (cdr tree) '(#t #t)) 1]
+        ;[(node-leaf? tree) (+ 1 (leafcount (left-tree tree)) (leafcount (right-tree tree)))]
         [else (+ (leafcount (left-tree tree)) (leafcount (right-tree tree)))]))
 
 
@@ -31,12 +31,14 @@
 ;generates a #tree-layout from a given tree, which can be used to visualise the tree
 (define (tree->pict tree)
   (cond [(empty-tree? tree) (tree-layout #:pict(disk #:color "blue" 15))]
-        [else (tree-layout #:pict(text (number->string (first (node tree)))) (tree->pict (left-tree tree)) (tree->pict (right-tree tree)))]))
+        [else (tree-layout #:pict(text (format "~a"  (node tree))) (tree->pict (left-tree tree)) (tree->pict (right-tree tree)))]))
 
 ;the following returns a computation tree
 (define (FK-treelist f g accum pivot tiebreaker)
-    (cond [ (not (sanitycheck f g)) (list "sanity-check")]
+    (cond 
+          [ (not (sanitycheck f g)) (sanitycheck f g)]
           [ (<= (* (clause-len f) (clause-len g)) 1) (if (easydual f g) #t #f)]
+          [ (and (= (+ (length f) (length g)) 3) (equal? (sort (flatten f) <) (sort (flatten g) <))) #t]
           [ else
             (begin (set-box! (list-ref counters accum) (+ 1 (unbox (list-ref counters accum))))
             (letrec ((x (tiebreaker (pivot (vars f) f g)))
@@ -44,7 +46,7 @@
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
                           (g1 (remove-clause g x)))
-                 (list (list x (max (frequency x f) (frequency x g))) (FK-treelist (reduce f1) (reduce (disjunction g0 g1)) (+ accum 1) pivot tiebreaker)
+                 (list (list f g) (FK-treelist (reduce f1) (reduce  (disjunction g0 g1)) (+ accum 1) pivot tiebreaker)
                        (FK-treelist (reduce g1) (reduce (disjunction f0 f1)) (+ accum 1) pivot tiebreaker))))]))
 
 ;f and g are the formulas to generate
@@ -52,17 +54,17 @@
 ;depth is the maximum depth of the generated tree
 ;spacing is the y-spacing between the nodes, set to #f for default spacing
 (define (generate-svg treepict filename depth spacing) (fprintf (open-output-file filename) (bytes->string/utf-8
-  (convert (naive-layered treepict) #:x-spacing 1 #:y-spacing spacing) 'svg-bytes)))
+  (convert (naive-layered treepict  #:x-spacing 20 #:y-spacing spacing) 'svg-bytes))))
 
 (define (gridgen-pivot pivotlist tblist)
   (define possibilities (cartesian-product pivotlist tblist))
   (for-each (lambda (x) (begin (display x) (printf ":  ~a \n" (leafcount (FK-treelist (f-n 3) (g-n 3) 0 (first x) (second x)))))) possibilities))
 
 (define (arrayset dim1 dim2 array)
-  (vector-set! (vector-ref array dim2) dim1 (+ 1 (vector-ref (vector-ref array dim2) dim1))))
+  (vector-set! (vector-ref array dim1) dim2 (+ 1 (vector-ref (vector-ref array dim2) dim1))))
 (define (gridgen tree leftcount rightcount)
-  (cond [(empty-tree? tree) 0]
-        [(node-leaf? tree) (begin (arrayset leftcount rightcount gridcounters) (gridgen (left-tree tree) (+ 1 leftcount) rightcount) (gridgen (right-tree tree) leftcount (+ 1 rightcount)))]
+  (cond ;[(empty-tree? tree) 0]
+        [(empty-tree? tree) (begin (arrayset leftcount rightcount gridcounters))] ;(gridgen (left-tree tree) (+ 1 leftcount) rightcount) (gridgen (right-tree tree) leftcount (+ 1 rightcount)))]
         [else   (begin (gridgen (left-tree tree) (+ 1 leftcount) rightcount) (gridgen (right-tree tree) leftcount (+ 1 rightcount)))]))
 (define (generate-csv filename)
   (define outputport (open-output-file filename))
@@ -70,12 +72,12 @@
              (vector-map (lambda (y) (fprintf outputport "~a," y)) x)
              (fprintf outputport "\n"))
              gridcounters))
-(define (generate-all-grids pivotlist tblist)
+(define (generate-all-grids pivotlist tblist k)
   (define possibilities (cartesian-product pivotlist tblist))
   (for-each (lambda (x)
               (vector-map (lambda (y) (vector-fill! y 0)) gridcounters)
-              (gridgen (FK-treelist (f-n 3) (g-n 3) 0 (first x) (second x)) 0 0)
-              (generate-csv (string-replace (string-replace (format "csv\\~a-~a.csv" (first x) (second x)) "#<procedure:" "") ">" "")))
+              (gridgen (FK-treelist (f-n k) (g-n k) 0 (first x) (second x)) 0 0)
+              (generate-csv (string-replace (string-replace (format "csv\\~a-~a-f~a.csv" (first x) (second x) k) "#<procedure:" "") ">" "")))
             possibilities))
 
 

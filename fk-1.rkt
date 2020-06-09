@@ -3,10 +3,10 @@
 (require "generator.rkt")
 (provide sanitycheck easydual frequency fthresh fcons fmin fmax fconsmax tbnaive tbrand tbnaivelast tblex fthomas)
 
-;returns a list, which tells us what check we didn't pass exactly(if we didn't pass some test), or is just '(#t #t #t #t) if we pass all tests.
-;first element : same variables property. If false returns a list of variables that are in f but not in g.
-;second element:intersection property. returns the clause of empty intersection if false
-;third and fourth  elemnts:  maaximum clause. returns aa clause with length greater than |g| if false.
+;returns a list, which tells us what check we didn't pass exactly(if we didn't pass some test), or is just '(#t #t #t #t #t) if we pass all tests.
+;first element : same variables property. If false, returns a list of variables that are in f but not in g.
+;second element:intersection property. IF false. returns the clause of empty intersection.
+;third and fourth  elemnts:  maaximum clause. If false, returns a clause with length greater than |g|.
 (define (sanitycheck-list f g)
   (define (samevars f g)
     (define var-f (vars f))
@@ -39,14 +39,12 @@
 ;If |F||G| <= 1, we do duality checking as follows:
 ;if either is '() (representing 0) , the other has to be '(()) (representing 1)
 ;if both have length one, and one is an empty clause, then they are not dual
-;otehrwise they are dual
+;otehrwise they are dual(notice that we are guaranteed that the formulas pass the sanity-checks, which makes things much easier)
 (define (easydual f g)
   (cond [(empty? f) (equal? g '(()))]
         [(empty? g) (equal? f '(()))]
         [(or (empty? (first f)) (empty? (first g))) false]
         [else true]))
-
-
 
 (define (frequency var formula)
   (if (empty? formula) 0
@@ -56,10 +54,13 @@
 
 ;Here we implement several algorithms for choosing the splitting variable.
 ;When there was a sacrifice between coding something in a robust, easy to modify way vs an efficient implementation, I chose the more robust method.
+
+;list of all variables passing threshold
 (define (fthresh varlist f g)
     (define guarantee (/ 1 (+ (length f) (length g))))
     (filter (lambda (x) (>= (total-frequency x f g) guarantee)) varlist))
 
+;constructive algorithm inspired by Lemma 2.2 in Fredman and Khachiyan's paper, returns the variables in the min-clause satisfying the threshold.
 (define (fcons varlist f g)
     (define guarantee (/ 1 (+ (length f) (length g))))
     (define (frequent-help clause formula)
@@ -68,15 +69,13 @@
           (min-g (minimum-clause g)))
       (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
 
+;naive implementation, just returns the list
 (define (fmin varlist f g) varlist)
 
+;returns all the elements with maximal frequency. remark: fcons usually works better.
 (define (fmax varlist f g)
     (define (compute-max-frequency)
-      (define (iterate accum list)
-        (cond [(empty? list) accum]
-              [(> (total-frequency (car list) f g) accum) (iterate (total-frequency (car list) f g) (cdr list))]
-              [else (iterate accum (cdr list))]))
-      (iterate 0 varlist))
+      (foldl (lambda (a accum) (if (> (total-frequency a f g) accum) (total-frequency a f g) accum)) 0 varlist))
     (define maxfrequency (compute-max-frequency))
     (filter (lambda (x) (= (total-frequency x f g) maxfrequency)) varlist))
 
@@ -85,13 +84,12 @@
 
 ;this just returns a list of one element; meant to replicate Thomas' code
 (define (fthomas  varlist f g)
-  (define (iter-max lst max  ind)
-    (cond [(empty? lst) (list ind)]
-          [(> (total-frequency (first lst) f g) max) (iter-max (rest lst) (total-frequency (first lst) f g) (first lst))]
-          [else (iter-max (rest lst) max ind)]))
-  (iter-max (sort (fthresh (sort (vars f) <) f g) <) 0 0))
+  (define (iter-max lst)  ;accum is a pair: (variable, frequency), returns a pair maximizing the frequency
+    (foldl (lambda (a accum) (if (> (total-frequency a f g) (second accum)) (list a (total-frequency a f g)) accum))
+           (list 0 0) lst))
+  (list (first (iter-max (sort (fthresh (sort varlist <) f g) <)))))
 
-;now for tiebreakers
+;now for the tiebreakers
 (define (tbnaive varlist) (first varlist))
 (define (tblex varlist)   (argmin (lambda (x) x) varlist))
 (define (tbnaivelast varlist) (last varlist))
@@ -102,6 +100,8 @@
 ;  (cond [(list? (second failedtest)) (char-vector (second failedtest) f)]
         ;next check the samevars property. remember that we have alist of variables not contained in the other formula
 ;        [(list? (first failedtest))
+
+
 (define (simpledisjunction? f g)
   (define (listofones g)
     (cond [(empty? g) #t]

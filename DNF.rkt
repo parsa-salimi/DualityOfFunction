@@ -1,6 +1,6 @@
 #lang racket
 (provide reduce minimum-clause maximum-clause remove-var remove-clause clause-len
-         vars disjunction add mult)
+         vars disjunction add mult insert)
 ; This file implements the DNF representations and generators
 
 ; a formula is a list of list of int
@@ -58,4 +58,7 @@
         (mult-accum (cdr f) (disjunction (mult-clause (car f) g) accum))))
   (reduce (mult-accum f '())))
 
+;code for representing certificates. currently just a list of zeroes and ones
+(define (insert certificate position value)
+  (append (append (take  certificate (- position 1)) (list value)) (drop certificate (- position 1))))
 

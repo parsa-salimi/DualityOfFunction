@@ -109,19 +109,28 @@
           [else #f]))
   (and (= (length f) 1)
        (listofones g)))
+;returns a pair (res cert). res is either true or false. if false, cert is a certificate. If true, cert is 'nocert
 (define (FK f g pivot tiebreaker)
     (begin
       (define sanitylist (sanitycheck-list f g))
-    (cond [ (not (equal? sanitylist '(#t #t #t #t #t))) #f] ;(gencertificate f g sanitylist)]
-          [ (<= (* (clause-len f) (clause-len g)) 1) (easydual f g)]
-          [(simpledisjunction? g f) #t]
-          [(simpledisjunction? f g) #t]
+    (cond [ (not (equal? sanitylist '(#t #t #t #t #t))) '(#f (gencertificate f g sanitylist))] ;(gencertificate f g sanitylist)]
+          [ (<= (* (clause-len f) (clause-len g)) 1) (list (easydual f g) 'filler)]
+          [(simpledisjunction? g f) '(#t 'nocert)] ;TODO: generate certificate for when this is false
+          [(simpledisjunction? f g) '(#t 'nocert)]
           [ else (letrec ((x (tiebreaker (pivot (vars f) f g))) 
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
-                          (g1 (remove-clause g x)))
-                 (and (FK (reduce f1) (reduce (disjunction g0 g1)) pivot tiebreaker) (FK (reduce g1) (reduce (disjunction f0 f1)) pivot tiebreaker)))])))
+                          (g1 (remove-clause g x))
+                          (first-recursion (FK (reduce f1) (reduce (disjunction g0 g1)) pivot tiebreaker)))
+                   (if  (first first-recursion)
+                        (let ((second-recursion (FK (reduce (disjunction f0 f1)) (reduce g1) pivot tiebreaker)))
+                          (if (first second-recursion)
+                               '(#t 'nocert)
+                              ;otherwise the second recursion has failed and we have a certificate g_1(y') = f_0(y) \/ f_1(y)
+                              (list #f (insert (second second-recursion) x 1))))
+                        ;otherwise the first recursion has failed and we have a certificate f_1(y') = g_0(y) \/ g_1(y)
+                        (list #f (insert (second first-recursion) x 0))))])))
 
 
 

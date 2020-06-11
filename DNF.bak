@@ -25,10 +25,9 @@
           [else (cons (first f) (remove-clause (rest f) x))]))
    (remove-clause-help f x))
 ;finding minimum and maximum clauses is very similar, so we write this helper function for both of them
-(define (list-iter f func accum)
-  (cond [(empty? f) accum]
-        [(func (length (first f)) (length accum)) (list-iter (rest f) func (first f))]
-        [else (list-iter (rest f) func accum)]))
+(define (list-iter lst func accum)
+  (foldl (lambda (x accum) (if (func (length x) (length accum)) x accum)) accum lst))
+
 (define (minimum-clause f)
   (if (empty? f) '()
   (list-iter (rest f) < (first f))))

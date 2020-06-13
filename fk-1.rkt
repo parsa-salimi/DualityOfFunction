@@ -103,11 +103,24 @@
 (define (tbrand varlist) (list-ref varlist (random (length varlist))))
 
 (define (gencertificate f g failedlist varlist)
+  (define (conflicting-assignment-maxlength clause formula)
+    (define subsets (map (lambda (x) (remove x clause)) clause))
+    (define (nonempty-clause-formula c f)
+      (cond [(empty? f) true]
+            [(empty? (set-intersect c (first f))) false]
+            [else (nonempty-clause-formula c (rest f))]))
+    (findf (lambda (x) (nonempty-clause-formula x formula)) subsets))
+  (define (find-clause-containing-var formula var)
+    (first (map (lambda (x) (member var x)) formula)))
          ;if empty-intersection fails, the characteristic vector of the certificate clause is an answer:
   (cond [(list? (second failedlist))  (second failedlist)] ;in our representation the characteristic vector is just the clause
         ;next check the samevars property. remember that we have alist of variables not contained in the other formula
-        [(list? (first failedlist)) f]
-        [else g]))
+        [(list? (first failedlist)) ;find a clause in f (or g) that has the given variable in it.
+         (if (= (second (first failedlist)) 'f) (remove (first (first failedlist))(find-clause-containing-var f (first (first failedlist))))
+                                                (remove (first (first failedlist))(find-clause-containing-var g (first (first failedlist)))))]
+        [(list? (third failedlist)) (conflicting-assignment-maxlength (third failedlist) g)]
+        [(list? (fourth failedlist)) (conflicting-assignment-maxlength (fourth failedlist) f)]
+        [else f]))
 
 
 (define (simpledisjunction? f g)
@@ -118,21 +131,21 @@
   (and (= (length f) 1)
        (listofones g)))
 ;returns a pair (res cert). res is either true or false. if false, cert is a certificate. If true, cert is 'nocert
-(define (FK-help f g pivot tiebreaker vars)
+(define (FK-help f g pivot tiebreaker varlist)
     (begin
       (define sanitylist (sanitycheck-list f g))
-    (cond [(not (equal? sanitylist '(#t #t #t #t #t))) '(#f (gencertificate f g sanitylist vars))] ;(gencertificate f g sanitylist)]
-          [(<= (* (clause-len f) (clause-len g)) 1) (easydual f g vars)]
+    (cond [(not (equal? sanitylist '(#t #t #t #t #t))) '(#f (gencertificate f g sanitylist varlist))] ;(gencertificate f g sanitylist)]
+          [(<= (* (clause-len f) (clause-len g)) 1) (easydual f g varlist)]
           [(simpledisjunction? g f) '(#t 'nocert)] ;TODO: generate certificate for when this is false
           [(simpledisjunction? f g) '(#t 'nocert)]
-          [ else (letrec ((x (tiebreaker (pivot vars f g))) 
+          [ else (letrec ((x (tiebreaker (pivot (vars f) f g))) 
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
                           (g1 (remove-clause g x))
-                          (first-recursion (FK-help (reduce f1) (reduce (disjunction g0 g1)) pivot tiebreaker (remove x vars))))
+                          (first-recursion (FK-help (reduce f1) (reduce (disjunction g0 g1)) pivot tiebreaker (remove x varlist))))
                    (if  (first first-recursion)
-                        (let ((second-recursion (FK-help (reduce (disjunction f0 f1)) (reduce g1) pivot tiebreaker (remove x vars))))
+                        (let ((second-recursion (FK-help (reduce (disjunction f0 f1)) (reduce g1) pivot tiebreaker (remove x varlist))))
                           (if (first second-recursion)
                                '(#t 'nocert)
                               ;otherwise the second recursion has failed and we have a certificate g_1(y') = f_0(y) \/ f_1(y)

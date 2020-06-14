@@ -27,6 +27,11 @@
   (define (inequality-property f g)
     (define (sum-formula f) (foldl + 0 (map (lambda (x) (expt 2 (- (clause-len x)))) f)))
     (if (>= (+ (sum-formula f) (sum-formula g)) 1) #t 'inequality))
+  (display (list (samevars f g)
+       (intersection-property f g)
+       (maxlength-property f g)
+       (maxlength-property g f)
+       (inequality-property f g)))
   (list (samevars f g)
        (intersection-property f g)
        (maxlength-property f g)
@@ -111,16 +116,34 @@
             [else (nonempty-clause-formula c (rest f))]))
     (findf (lambda (x) (nonempty-clause-formula x formula)) subsets))
   (define (find-clause-containing-var formula var)
-    (first (map (lambda (x) (member var x)) formula)))
+    (first (filter (lambda (x) (member var x)) formula)))
          ;if empty-intersection fails, the characteristic vector of the certificate clause is an answer:
   (cond [(list? (second failedlist))  (second failedlist)] ;in our representation the characteristic vector is just the clause
         ;next check the samevars property. remember that we have alist of variables not contained in the other formula
         [(list? (first failedlist)) ;find a clause in f (or g) that has the given variable in it.
-         (if (= (second (first failedlist)) 'f) (remove (first (first failedlist))(find-clause-containing-var f (first (first failedlist))))
+         (if (eq? (second (first failedlist)) 'f) (remove (first (first failedlist))(find-clause-containing-var f (first (first failedlist))))
                                                 (remove (first (first failedlist))(find-clause-containing-var g (first (first failedlist)))))]
         [(list? (third failedlist)) (conflicting-assignment-maxlength (third failedlist) g)]
         [(list? (fourth failedlist)) (conflicting-assignment-maxlength (fourth failedlist) f)]
-        [else f]))
+        [(equal? (fifth failedlist) 'inequality) (generate-with-expectations f g varlist)]
+        [else (error "could not match failedlist with any generators")]))
+(define (generate-with-expectations f g varlist)
+  ;proceed as in lemma 1 of FK
+  (define (E zerovars onevars)
+    ;remove all implicants with zero and remove variables with 1 from implicants
+    (define newf (foldl (lambda (x result) (remove-var result x)) (foldl (lambda (x result) (remove-var result x)) f onevars) zerovars))
+    (define newg (foldl (lambda (x result) (remove-var result x)) (foldl (lambda (x result) (remove-var result x)) g zerovars) onevars))
+    (define (sum-formula f) (foldl + 0 (map (lambda (x) (expt 2 (- (clause-len x)))) f)))
+    (+ (sum-formula f) (sum-formula g)))
+  ;for every variable in varlist, we first put it in zerovars, then in onevars, and see which gives a smaller expected value
+  (define (generate-helper varlst ones zeroes)
+    (cond [(empty? varlst) ones]
+          [else (let ((E-0 (E (cons (first varlst) zeroes) ones))
+                      (E-1 (E zeroes (cons (first varlst) ones))))
+                  (if (> E-0 E-1) (generate-helper (rest varlst) ones (cons (first varlist) zeroes))
+                      (generate-helper (rest varlst) (cons (first varlist) ones) zeroes)))]))
+  (generate-helper varlist '() '()))
+  
 
 
 (define (simpledisjunction? f g)
@@ -134,7 +157,7 @@
 (define (FK-help f g pivot tiebreaker varlist)
     (begin
       (define sanitylist (sanitycheck-list f g))
-    (cond [(not (equal? sanitylist '(#t #t #t #t #t))) '(#f (gencertificate f g sanitylist varlist))] ;(gencertificate f g sanitylist)]
+    (cond [(not (equal? sanitylist '(#t #t #t #t #t))) (list #f (gencertificate f g sanitylist varlist))] ;(gencertificate f g sanitylist)]
           [(<= (* (clause-len f) (clause-len g)) 1) (easydual f g varlist)]
           [(simpledisjunction? g f) '(#t 'nocert)] ;TODO: generate certificate for when this is false
           [(simpledisjunction? f g) '(#t 'nocert)]

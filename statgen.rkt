@@ -13,7 +13,7 @@
 (define (left-tree tree) (cadr tree))
 (define (right-tree tree) (caddr tree))
 (define (node-leaf? tree) (member #t tree))
-(define (empty-tree? tree) (not (list? tree)))
+(define (empty-tree? tree) (or (eq? (first tree) #t) (eq? (first tree) #f)))
 (define (leafcount tree)
   (cond [(empty-tree? tree) 1]
         [else (+ (leafcount (left-tree tree)) (leafcount (right-tree tree)))]))
@@ -36,12 +36,11 @@
        (listofones g)))
 ;the following returns a computation tree
 (define (FK-treelist f g pivot tiebreaker)
-    (cond [(or (empty? f) (empty? g)) #t]
-          [ (not (sanitycheck f g)) (sanitycheck f g)]
-          [ (<= (* (clause-len f) (clause-len g)) 1) (if (easydual f g) #t #f)]
-          [(simpledisjunction? f g) #t] ;catches formulas of the form f: /\_i x_i g: \/_i x_i
-          [(simpledisjunction? g f) #t]
-          [ (and (= (+ (length f) (length g)) 3) (equal? (sort (flatten f) <) (sort (flatten g) <))) #t]
+    (cond [(or (empty? f) (empty? g)) (list #t (list f g))]
+          [ (not (sanitycheck f g)) (list #f (list f g))]
+          [ (<= (* (clause-len f) (clause-len g)) 1) (if (easydual f g) (list #t (list f g)) (list #f (list f g)))]
+          [(simpledisjunction? f g) (list #t (list f g))] ;catches formulas of the form f: /\_i x_i g: \/_i x_i
+          [(simpledisjunction? g f) (list #t (list f g))]
           [ else
             (letrec ((x (tiebreaker (pivot (vars f) f g)))
                           (f0 (remove-var f x))
@@ -94,6 +93,14 @@
               (gridgen (FK-treelist (f-n k) (g-n k) (first x) (second x)))
               (generate-csv (string-replace (string-replace (format "csv\\~a-~a-f~a-symmetric.csv" (first x) (second x) k) "#<procedure:" "") ">" "")))
             possibilities))
+
+(define (print-barrier barrier tree)
+  (define (print-barrier-helper accuml accumr tree)
+    (cond [(empty-tree? tree) (if (= accumr barrier) (begin (printf "terminal node: L:~a R:~a  " accuml accumr) (println (second tree))) #t)]
+          [(= accumr barrier) (printf "nonterminal node: L:~a R:~a  " accuml accumr) (println (node tree)) (print-barrier-helper (+1 accuml) accumr (left-tree tree))]
+          [(< accumr barrier) (print-barrier-helper (+ 1 accuml) accumr (left-tree tree)) (print-barrier-helper accuml (+ 1 accumr) (right-tree tree))]
+          [else #t]))
+  (print-barrier-helper 0 0 tree))
 
 
                    

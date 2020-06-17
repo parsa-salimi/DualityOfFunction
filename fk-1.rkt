@@ -1,7 +1,14 @@
 #lang racket
 (require "DNF.rkt")
 (require "generator.rkt")
-(provide sanitycheck easydual frequency fthresh fcons fmin fmax fconsmax tbnaive tbrand tbnaivelast tblex fthomas)
+(provide sanitycheck easydual frequency fthresh fcons fmin fmax fconsmax tbnaive tbrand tbnaivelast tblex fthomas FK)
+
+;combines a list of lists of certificates into a single list of scertificates
+(define-syntax makelist
+  (syntax-rules ()
+    [(makelist a) (if (list? a) a '())]
+    [(makelist a b ...) (if (list? a) (append a (makelist b ...))
+                            (makelist b ...))]))
 
 ;returns a list, which tells us what check we didn't pass exactly(if we didn't pass some test), or is just '(#t #t #t #t #t) if we pass all tests.
 ;first element : same variables property. If false, returns a pair (var formula) indicating a variable that is either only in f or only in g, and either 'f or 'g to signal whether it is only in f or only in g
@@ -26,7 +33,7 @@
             [else (first f)]))
   (define (inequality-property f g)
     (define (sum-formula f) (foldl + 0 (map (lambda (x) (expt 2 (- (clause-len x)))) f)))
-    (if (>= (+ (sum-formula f) (sum-formula g)) 1) #t 'inequality))
+    (if (>= (+ (sum-formula f) (sum-formula g)) 1) #t '(inequality)))
   (list (samevars f g)
        (intersection-property f g)
        (maxlength-property f g)
@@ -109,19 +116,18 @@
       (cond [(empty? f) true]
             [(empty? (set-intersect c (first f))) false]
             [else (nonempty-clause-formula c (rest f))]))
-    (findf (lambda (x) (nonempty-clause-formula x formula)) subsets))
-  (define (find-clause-containing-var formula var)
-    (first (filter (lambda (x) (member var x)) formula)))
+    (filter (lambda (x) (nonempty-clause-formula x formula)) subsets))
+  (define (find-clauses-containing-var formula var)
+    (filter (lambda (x) (member var x)) formula))
+  (define (choose-cert certdata selector function)
+    (if (selector certdata) (function certdata) #t))
          ;if empty-intersection fails, the characteristic vector of the certificate clause is an answer:
-  (cond [(list? (second failedlist))  (second failedlist)] ;in our representation the characteristic vector is just the clause
-        ;next check the samevars property. remember that we have alist of variables not contained in the other formula
-        [(list? (first failedlist)) ;find a clause in f (or g) that has the given variable in it.
-         (if (eq? (second (first failedlist)) 'f) (remove (first (first failedlist))(find-clause-containing-var f (first (first failedlist))))
-                                                (remove (first (first failedlist))(find-clause-containing-var g (first (first failedlist)))))]
-        [(list? (third failedlist)) (conflicting-assignment-maxlength (third failedlist) g)]
-        [(list? (fourth failedlist)) (conflicting-assignment-maxlength (fourth failedlist) f)]
-        [(equal? (fifth failedlist) 'inequality) (generate-with-expectations f g varlist)]
-        [else (error "could not match failedlist with any generators")]))
+  (cond [(list? (second failedlist))  (error "expected false clause, but certificate is a true clause") (second failedlist)] ;in our representation the characteristic vector is just the clause
+        [else  (filter list? (makelist (choose-cert (first failedlist) list? (lambda (x) (if (eq? (second x) 'f) (map (lambda (y) (remove (first x) y)) (find-clauses-containing-var f (first x)))
+                                                (map (lambda (y) (set-subtract varlist (remove (first x) y))) (find-clauses-containing-var g (first x))))))
+                    (choose-cert (third failedlist) list? (lambda (x) (conflicting-assignment-maxlength x g)))
+                    (choose-cert (fourth failedlist) list? (lambda (x) (conflicting-assignment-maxlength x f)))
+                    (choose-cert (fifth failedlist) list? (lambda (x) (generate-with-expectations f g varlist)))))]))
 (define (generate-with-expectations f g varlist)
   ;proceed as in lemma 1 of FK
   (define (E zerovars onevars)
@@ -135,8 +141,8 @@
     (cond [(empty? varlst) ones]
           [else (let ((E-0 (E (cons (first varlst) zeroes) ones))
                       (E-1 (E zeroes (cons (first varlst) ones))))
-                  (if (> E-0 E-1) (generate-helper (rest varlst) ones (cons (first varlist) zeroes))
-                      (generate-helper (rest varlst) (cons (first varlist) ones) zeroes)))]))
+                  (if (> E-1 E-0) (generate-helper (rest varlst) ones (cons (first varlst) zeroes))
+                      (generate-helper (rest varlst) (cons (first varlst) ones) zeroes)))]))
   (generate-helper varlist '() '()))
   
 
@@ -167,12 +173,15 @@
                           (if (first second-recursion)
                                '(#t 'nocert)
                               ;otherwise the second recursion has failed and we have a certificate g_1(y') = f_0(y) \/ f_1(y)
-                              (list #f (insert (second second-recursion) x 1))))
+    
+                               (list #f (map (lambda (cert) (insert cert x 1)) (second second-recursion)))))
                         ;otherwise the first recursion has failed and we have a certificate f_1(y') = g_0(y) \/ g_1(y)
-                        (list #f (insert (second first-recursion) x 0))))])))
+                        (list #f (map (lambda (cert) (insert cert x 0)) (second first-recursion)))))])))
 
 (define (FK f g pivot tiebreaker)
   (FK-help f g pivot tiebreaker (vars f)))
+(define (FK-def f g)
+  (FK f g fconsmax tbnaivelast))
 
 
 

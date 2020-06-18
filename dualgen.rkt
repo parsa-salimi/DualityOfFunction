@@ -1,7 +1,6 @@
 #lang racket
-(require "DNF.rkt")
-(require "generator.rkt")
-(require "fk-1.rkt")
+(require "fk-1.rkt" "getfunctions.rkt" "generator.rkt" "DNF.rkt")
+
 
 ;formula is in DNF
 ;search if there if an implicant in formula which is a subset of the given implicant
@@ -20,14 +19,18 @@
   (maximise-clause-help clause varlist g))
 ;we just use fconsmax with naivelast tiebreaker
 (define (dualgen f pivot tiebreaker)
+  (define (set-same? s1 s2)
+    (and (subset? s1 s2) (subset? s2 s1)))
   (define varlist (vars f))
   (define (dual-helper f partial accum)
     (define newclause (FK f partial pivot tiebreaker))
-    (if (eq? (first newclause) #t) (list partial accum)
-        (letrec [(cert (second newclause))
+    (cond [(eq? (first newclause) #t) (list partial accum)] 
+          [(eq? (first (second newclause)) 'intersection) (display "i") (dual-helper f (filter (lambda (x) (not (set-same? x (second (second newclause))))) partial) (+ 1 accum))]
+          [else (letrec [(cert (second newclause))
                  (maxcert (map (lambda (x) (set-subtract varlist (maximise-clause x (set-subtract varlist x) f))) cert))]
-            (dual-helper f (append partial (remove-duplicates maxcert (lambda (a b) (and (subset? a b) (subset? b a))))) (+ 1 accum)))))
+              (dual-helper f (append partial (remove-duplicates maxcert set-same?)) (+ 1 accum)))]))
   (dual-helper f '() 1))
+(define (dualgen-def f) (dualgen f fcons tbnaive))
 
 (define (benchmark f pivotlist tblist filename)
   (define output (open-output-file filename))

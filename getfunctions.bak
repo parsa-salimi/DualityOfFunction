@@ -1,0 +1,9 @@
+#lang racket
+(require net/url)
+
+;download file
+(define (databytes urlstring) (port->bytes (get-pure-port (string->url urlstring))))
+(define (writeto filename urlstring)
+  (define out (open-output-file filename))
+  (define data (databytes urlstring))
+  (write-bytes data out))

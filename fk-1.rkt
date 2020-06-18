@@ -35,7 +35,7 @@
     (define (sum-formula f) (foldl + 0 (map (lambda (x) (expt 2 (- (clause-len x)))) f)))
     (if (>= (+ (sum-formula f) (sum-formula g)) 1) #t '(inequality)))
   (list (samevars f g)
-       (intersection-property f g)
+       (intersection-property g f)
        (maxlength-property f g)
        (maxlength-property g f)
        (inequality-property f g)))
@@ -122,7 +122,7 @@
   (define (choose-cert certdata selector function)
     (if (selector certdata) (function certdata) #t))
          ;if empty-intersection fails, the characteristic vector of the certificate clause is an answer:
-  (cond [(list? (second failedlist))  (error "expected false clause, but certificate is a true clause") (second failedlist)] ;in our representation the characteristic vector is just the clause
+  (cond [(list? (second failedlist))  (list 'intersection (second failedlist))] ;this conflicting assignment is different from the others, f(x)=g(x')=1. remove (x') from g instead.
         [else  (filter list? (makelist (choose-cert (first failedlist) list? (lambda (x) (if (eq? (second x) 'f) (map (lambda (y) (remove (first x) y)) (find-clauses-containing-var f (first x)))
                                                 (map (lambda (y) (set-subtract varlist (remove (first x) y))) (find-clauses-containing-var g (first x))))))
                     (choose-cert (third failedlist) list? (lambda (x) (conflicting-assignment-maxlength x g)))

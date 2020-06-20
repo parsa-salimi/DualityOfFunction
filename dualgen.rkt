@@ -20,17 +20,23 @@
 ;we just use fconsmax with naivelast tiebreaker
 (define (dualgen f pivot tiebreaker)
   (define (set-same? s1 s2)
-    (and (subset? s1 s2) (subset? s2 s1)))
+    (if (and (list? s1) (list? s2))
+    (and (subset? s1 s2) (subset? s2 s1)) #f))
   (define varlist (vars f))
+  ;(define out (open-output-file "err.txt"))
   (define (dual-helper f partial accum)
     (define newclause (FK f partial pivot tiebreaker))
+    ;(fprintf out "clause: ~a\n\n\n" newclause)
     (cond [(eq? (first newclause) #t) (list partial accum)] 
-          [(eq? (first (second newclause)) 'intersection) (display "i") (dual-helper f (filter (lambda (x) (not (set-same? x (second (second newclause))))) partial) (+ 1 accum))]
+          [(eq? (first (second newclause)) 'intersection)  (display "intersection")] ;(dual-helper f (filter (lambda (x) (not (set-same? x (second (second newclause))))) partial) (+ 1 accum))]
           [else (letrec [(cert (second newclause))
-                 (maxcert (map (lambda (x) (set-subtract varlist (maximise-clause x (set-subtract varlist x) f))) cert))]
-              (dual-helper f (append partial (remove-duplicates maxcert set-same?)) (+ 1 accum)))]))
+                         (maxcert (map (lambda (x) (set-subtract varlist (maximise-clause x (set-subtract varlist x) f))) cert))
+                         (newpartial (append partial (remove-duplicates maxcert set-same?)))]
+                 (if (eq? newpartial partial) (display "e") (display ""))
+              (dual-helper f newpartial (+ 1 accum)))]))
   (dual-helper f '() 1))
 (define (dualgen-def f) (dualgen f fcons tbnaive))
+(define (uno f) (dualgen-def (getf f)))
 
 (define (benchmark f pivotlist tblist filename)
   (define output (open-output-file filename))
@@ -41,5 +47,6 @@
                        (fprintf output "calls to FK: ~a \t CPU time: ~a Real time: ~a\n" (second (first (first res))) (second res) (third res)))
             possibilities)
   (close-output-port output))
+
   
           

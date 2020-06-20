@@ -18,8 +18,10 @@
   (define (samevars f g)
     (define var-f (vars f))
     (define var-g (vars g))
-    (define diff (if (> (length var-f) (length var-g)) (set-subtract var-f var-g) (set-subtract var-g var-f)))
-    (if (empty? diff) #t (list (first diff) (if (> (length var-f) (length var-g)) 'f 'g))))
+    (letrec ((fminusg (set-subtract var-f var-g))
+          (gminusf (set-subtract var-g var-f))
+          (diff (if (not (empty? fminusg)) (list 'f fminusg) (list 'g gminusf))))
+      (if (and (empty? fminusg) (empty? gminusf)) #t (map (lambda (x) (list x (first diff))) (second diff)))))
   (define (maxlength-property f g)
     (define max (maximum-clause f))
     (if (<= (length max) (length g)) #t max))
@@ -121,13 +123,17 @@
     (filter (lambda (x) (member var x)) formula))
   (define (choose-cert certdata selector function)
     (if (selector certdata) (function certdata) #t))
+  (define (conflicting-assignment-var x)
+    (if (eq? (second x) 'f) (map (lambda (y) (remove (first x) y)) (find-clauses-containing-var f (first x)))
+                                                (map (lambda (y) (set-subtract varlist (remove (first x) y))) (find-clauses-containing-var g (first x)))))
          ;if empty-intersection fails, the characteristic vector of the certificate clause is an answer:
   (cond [(list? (second failedlist))  (list 'intersection (second failedlist))] ;this conflicting assignment is different from the others, f(x)=g(x')=1. remove (x') from g instead.
-        [else  (filter list? (makelist (choose-cert (first failedlist) list? (lambda (x) (if (eq? (second x) 'f) (map (lambda (y) (remove (first x) y)) (find-clauses-containing-var f (first x)))
-                                                (map (lambda (y) (set-subtract varlist (remove (first x) y))) (find-clauses-containing-var g (first x))))))
+        [else  (filter list? (makelist
+                    (choose-cert (first failedlist) list? (lambda (conflictingvars) (foldl append '() (map (lambda (x) (conflicting-assignment-var x)) conflictingvars ))))
                     (choose-cert (third failedlist) list? (lambda (x) (conflicting-assignment-maxlength x g)))
-                    (choose-cert (fourth failedlist) list? (lambda (x) (conflicting-assignment-maxlength x f)))
-                    (choose-cert (fifth failedlist) list? (lambda (x) (generate-with-expectations f g varlist)))))]))
+                    (choose-cert (fourth failedlist) list? (lambda (x) (set-subtract varlist (conflicting-assignment-maxlength x f))))
+                    (choose-cert (fifth failedlist) list? (lambda (x) (generate-with-expectations f g varlist)))
+                    ))]))
 (define (generate-with-expectations f g varlist)
   ;proceed as in lemma 1 of FK
   (define (E zerovars onevars)
@@ -145,6 +151,7 @@
                       (generate-helper (rest varlst) (cons (first varlst) ones) zeroes)))]))
   (generate-helper varlist '() '()))
   
+  
 
 
 (define (simpledisjunction? f g)
@@ -154,11 +161,18 @@
           [else #f]))
   (and (= (length f) 1)
        (listofones g)))
+  (define (set-same? s1 s2)
+    (if (and (list? s1) (list? s2))
+    (and (subset? s1 s2) (subset? s2 s1)) #f))
 ;returns a pair (res cert). res is either true or false. if false, cert is a certificate. If true, cert is 'nocert
 (define (FK-help f g pivot tiebreaker varlist)
     (begin
       (define sanitylist (sanitycheck-list f g))
-    (cond [(not (equal? sanitylist '(#t #t #t #t #t))) (list #f (gencertificate f g sanitylist varlist))] ;(gencertificate f g sanitylist)]
+      ;(printf "~a\n" sanitylist)
+    (cond [(not (equal? sanitylist '(#t #t #t #t #t))) (let ((certs (gencertificate f g sanitylist varlist)))
+                                                         ;(printf "~a\n" certs)
+                                                         (if (findf (lambda (x) (set-same? '(38 39 42 43 46 1 13 4 16 74 62 50 48) x)) certs) (display sanitylist)
+                                                             (list #f certs)))] ;(gencertificate f g sanitylist)]
           [(<= (* (clause-len f) (clause-len g)) 1) (easydual f g varlist)]
           [(simpledisjunction? g f) '(#t 'nocert)] ;TODO: generate certificate for when this is false
           [(simpledisjunction? f g) '(#t 'nocert)]

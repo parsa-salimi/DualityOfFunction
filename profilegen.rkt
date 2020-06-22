@@ -19,6 +19,9 @@
            (range 0 (+ 1 n))))
   ;step 1: fill hash table with lower bounds
   (define myhash (make-table n))
+  (define (p r s)
+    (define bound (K(r s) in myhash)) r)
+    
   (define k 0)
   (for [(s (range 0 (+ 1 (binomial n (floor (/ n 2))))))]
     (K(0 s) := 0 in myhash))
@@ -31,7 +34,7 @@
       (K(r s) := (+ (binomial (- k 1) (- r 1))
                   (K((- r 1) (- s (binomial (- k 1) r))) in myhash))
                   in myhash)))
-  (define p (init-profiles n))
-  p)
+  (define p-init (init-profiles n))
+  myhash)
           
   

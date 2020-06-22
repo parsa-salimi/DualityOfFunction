@@ -1,5 +1,6 @@
 #lang racket
 (require "fk-1.rkt" "getfunctions.rkt" "generator.rkt" "DNF.rkt")
+(provide dual)
 
 
 ;formula is in DNF
@@ -36,6 +37,7 @@
               (dual-helper f newpartial (+ 1 accum)))]))
   (dual-helper f '() 1))
 (define (dualgen-def f) (dualgen f fcons tbnaive))
+(define (dual f) (first (dualgen-def f)))
 (define (uno f) (dualgen-def (getf f)))
 
 (define (benchmark f pivotlist tblist filename)

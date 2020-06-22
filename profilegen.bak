@@ -1,0 +1,2 @@
+#lang racket
+(require "fk-1.rkt" "DNF.rkt" "generator.rkt" "dualgen.rkt")

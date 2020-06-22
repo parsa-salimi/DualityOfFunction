@@ -60,7 +60,8 @@
 
 ;code for representing certificates. currently just a list of zeroes and ones
 (define (insert certificate position value)
-  (if (= value 0) certificate (cons position certificate)))
+  (if (= value 0) certificate
+      (if (list? certificate) (cons position certificate) certificate)))
 
 
 

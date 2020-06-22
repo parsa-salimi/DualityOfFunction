@@ -1,6 +1,6 @@
 #lang racket
-(require "DNF.rkt")
-(require "generator.rkt")
+
+(require "DNF.rkt" "generator.rkt" "getfunctions.rkt")
 (provide sanitycheck easydual frequency fthresh fcons fmin fmax fconsmax tbnaive tbrand tbnaivelast tblex fthomas FK)
 
 ;combines a list of lists of certificates into a single list of scertificates
@@ -132,7 +132,7 @@
                     (choose-cert (first failedlist) list? (lambda (conflictingvars) (foldl append '() (map (lambda (x) (conflicting-assignment-var x)) conflictingvars ))))
                     (choose-cert (third failedlist) list? (lambda (x) (conflicting-assignment-maxlength x g)))
                     (choose-cert (fourth failedlist) list? (lambda (x) (set-subtract varlist (conflicting-assignment-maxlength x f))))
-                    (choose-cert (fifth failedlist) list? (lambda (x) (generate-with-expectations f g varlist)))
+                    ;(choose-cert (fifth failedlist) list? (lambda (x) (generate-with-expectations f g varlist)))
                     ))]))
 (define (generate-with-expectations f g varlist)
   ;proceed as in lemma 1 of FK

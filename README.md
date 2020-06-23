@@ -1,5 +1,5 @@
 # DualityOfFunction
-This inefficient Racket code implements the Fredman Khachiyan algorithm for detecting if two given formula's in DNF are dual
+This inefficient Racket code implements the Fredman Khachiyan algorithm for detecting if two given formulas in DNF are dual.
 
 DNF.rkt contains the representation of DNF's, together with helper functions
 Generator.rkt contains codes for generating specific DNF's

@@ -80,6 +80,11 @@
   (foldl (lambda (profile accum) (append (genfunction profile) accum)) '() profiles))
 
                   
-(map (lambda (f) (list f (dual f))) (cdr (genfunctions (profiles 3))))
+(define (duals n) (map (lambda (f) (list f (dual f))) (rest (genfunctions (profiles n)))))
+(define (printduals n)
+  (define output (open-output-file (format "duals/var~aduals.txt" n)))
+  (for [(f (duals n))]
+    (fprintf output "~a\t~a\n" (first f) (second f)))
+  (close-output-port output))
 
   

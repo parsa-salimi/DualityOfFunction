@@ -2,13 +2,12 @@
 (provide reduce minimum-clause maximum-clause remove-var remove-clause clause-len
          vars disjunction add mult insert profile)
 ; This file implements the DNF representations and generators
-(define (set-same? a b)
-  (and (subset? a b) (subset? b a)))
+
 ; a formula is a list of list of int
 ;for example (x1 /\ x2 /\ x3)\/(x3 x4 x5) is represented by '((1 2 3) (3 4 5)). There is no ambiguity because we have assumed that our
 ;clauses are in DNF and moreover since we are only dealing with prime DNF's, we can safely ignore complements.
 ; 0 is represented by '(), and 1 is represented by '(())
-(define (disjunction f g) (remove-duplicates (append f g) set-same?))
+(define (disjunction f g) (remove-duplicates (append f g) equal?))
 (define (clause-len c) (length c))
 (define (vars f)
   (remove-duplicates (flatten f) =))

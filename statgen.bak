@@ -24,7 +24,7 @@
 
 ;generates a #tree-layout from a given tree, which can be used to visualise the tree
 (define (tree->pict tree)
-  (cond [(empty-tree? tree) (tree-layout #:pict(text (format "~a"  (second tree))))]
+  (cond [(empty-tree? tree) (tree-layout #:pict(disk #:color "blue" 15))]
         [else (tree-layout #:pict(text (format "~a"  (node tree))) (tree->pict (left-tree tree)) (tree->pict (right-tree tree)))]))
 
 (define (simpledisjunction? f g)
@@ -57,7 +57,7 @@
 (define (generate-svg treepict filename space)
   (define output (open-output-file filename))
   (fprintf output (bytes->string/utf-8
-  (convert (naive-layered treepict  #:x-spacing (first space) #:y-spacing (second space)) 'svg-bytes)))
+                                        (convert (naive-layered treepict  #:x-spacing (first space) #:y-spacing (second space)) 'svg-bytes)))
   (close-output-port output))
 
 (define (gridgen-pivot pivotlist tblist)
@@ -93,6 +93,7 @@
               (gridgen (FK-treelist (f-n k) (g-n k) (first x) (second x)))
               (generate-csv (string-replace (string-replace (format "csv\\~a-~a-f~a-symmetric.csv" (first x) (second x) k) "#<procedure:" "") ">" "")))
             possibilities))
+
 (define (print-barrier barrier tree filename)
   (define output (open-output-file filename))
   (define (print-barrier-helper accuml accumr tree)

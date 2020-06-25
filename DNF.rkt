@@ -1,6 +1,17 @@
 #lang racket
 (provide reduce minimum-clause maximum-clause remove-var remove-clause clause-len
-         vars disjunction add mult insert profile)
+         vars disjunction add mult insert profile make-table K)
+
+;implements a two-dimnesional hash table(with n rows) as a vector of hash tables
+(define-syntax K
+  (syntax-rules (:= in +=)
+    [(K(a b) := c in hash) (hash-set! (vector-ref hash a) b c)]
+    [(K(a b) += c in hash) (begin (hash-ref (vector-ref hash  a) b (lambda () (hash-set! (vector-ref hash a) b 0)))
+                           (hash-set! (vector-ref hash a) b (+ c (hash-ref (vector-ref hash  a) b 0))))]
+    [(K(a b) in hash)  (hash-ref (vector-ref hash  a) b 0)]))
+(define (make-table n)
+  (build-vector (+ 1 n) (lambda (m) (make-hash))))
+
 ; This file implements the DNF representations and generators
 (define (set-same? a b)
   (and (subset? a b) (subset? b a)))
@@ -14,17 +25,13 @@
   (remove-duplicates (flatten f) =))
 
 (define (remove-var f x)
-  (define (remove-help f x)
     (cond [(empty? f) empty]
           [(member x (first f)) (cons (remove x (first f)) (remove-var (rest f) x))]
           [else (cons (first f) (remove-var (rest f) x))]))
-   (remove-help f x))
 (define (remove-clause f x)
-  (define (remove-clause-help f x)
     (cond [(empty? f) empty]
           [(member x (first f)) (remove-clause (rest f) x)]
           [else (cons (first f) (remove-clause (rest f) x))]))
-   (remove-clause-help f x))
 ;finding minimum and maximum clauses is very similar, so we write this helper function for both of them
 (define (list-iter lst func accum)
   (foldl (lambda (x accum) (if (func (length x) (length accum)) x accum)) accum lst))
@@ -48,7 +55,7 @@
   (if (member '() formula) '(())
      (reduce-help 0 (remove-duplicates formula equal? ))))
 
-;in DNF, adding formula's is straightforward
+;in DNF, adding formulas is straightforward
 (define (add f g) (disjunction f g))
 ;multiplication is a little bit harder
 (define (mult f g)
@@ -56,7 +63,7 @@
     (map (lambda (x) (remove-duplicates (append c x) =)) g))
   (define (mult-accum f accum)
     (if (empty? f) accum
-        (mult-accum (cdr f) (disjunction (mult-clause (car f) g) accum))))
+        (mult-accum (rest f) (disjunction (mult-clause (first f) g) accum))))
   (reduce (mult-accum f '())))
 
 ;code for representing certificates. currently just a list of zeroes and ones

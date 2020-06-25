@@ -1,19 +1,11 @@
 #lang racket
 (require "fk-1.rkt" "DNF.rkt" "generator.rkt" "dualgen.rkt" math/number-theory)
-(provide genfunctions)
+(provide genfunctions profiles duals)
 
-;implements a two-dimnesional hash table(with n rows) as a vector of hash tables
-(define-syntax K
-  (syntax-rules (:= in)
-    [(K(a b) := c in hash) (hash-set! (vector-ref hash a) b c)]
-    [(K(a b) in hash)  (hash-ref (vector-ref hash  a) b)]))
-(define (make-table n)
-  (build-vector (+ 1 n) (lambda (m) (make-hash))))
+
 
 
 (define (numzeroes list) (foldl (lambda (x y) (if (= x 0) (+ y 1) y)) 0 list))
-
-
 ;implementing a multidimentional hash with n columns. A vector of n elements, each is a hash table
 ;generates all the profiles of MBFs of length n (Yusun and Stephen, section 4)
 (define (profiles n)
@@ -81,10 +73,10 @@
 
                   
 (define (duals n) (map (lambda (f) (list f (dual f))) (rest (genfunctions (profiles n)))))
-(define (printduals n)
-  (define output (open-output-file (format "duals/var~aduals.txt" n)))
-  (for [(f (duals n))]
-    (fprintf output "~a\t~a\n" (first f) (second f)))
-  (close-output-port output))
+(define (distinct-duals n)
+  (let [(duals (duals n))]
+    (remove-duplicates duals (lambda (x y) (and (subset? x y) (subset? y x))))))
+
+
 
   

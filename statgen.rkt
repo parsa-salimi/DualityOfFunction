@@ -1,26 +1,20 @@
 #lang racket
-(require "DNF.rkt")
-(require "generator.rkt")
-(require "fk-1.rkt")
-(require pict)
-(require pict/tree-layout)
-(require file/convertible)
-(require racket/vector)
+(require "DNF.rkt" "generator.rkt" "fk-1.rkt" "profilegen.rkt" pict pict/tree-layout file/convertible racket/vector)
+
 ; A tree is recursively defined as :
-; #f (a terminal node
-; a list '(node l r), where node is a node(currently stores frequency/ index information, and l and r are trees
+; '(#t/#f '(f g)) : a terminal node, f and g are formulas
+; a list '(node l r), where l and r are trees, and node is '(f g) where f and g are formulas at the node
 (define (node tree) (car tree))
 (define (left-tree tree) (cadr tree))
 (define (right-tree tree) (caddr tree))
 (define (node-leaf? tree) (member #t tree))
 (define (empty-tree? tree) (or (eq? (first tree) #t) (eq? (first tree) #f)))
+(define (trivial? tree) (and (not (empty-tree? tree)) (empty-tree? (left-tree tree)) (empty-tree? (right-tree tree))))
+
 (define (leafcount tree)
   (cond [(empty-tree? tree) 1]
         [else (+ (leafcount (left-tree tree)) (leafcount (right-tree tree)))]))
 
-
-;a 30*30 array
-(define gridcounters (build-vector 30 (lambda (x) (make-vector 30 0))))
 
 ;generates a #tree-layout from a given tree, which can be used to visualise the tree
 (define (tree->pict tree)
@@ -60,11 +54,6 @@
   (convert (naive-layered treepict  #:x-spacing (first space) #:y-spacing (second space)) 'svg-bytes)))
   (close-output-port output))
 
-(define (gridgen-pivot pivotlist tblist)
-  (define possibilities (cartesian-product pivotlist tblist))
-  (for-each (lambda (x) (begin
-                          (display (string-replace (string-replace (format "~a ~a" (first x) (second x)) "#<procedure:" "") ">" ""))
-                          (printf ":  ~a \n" (leafcount (FK-treelist (f-n 3) (g-n 3) (first x) (second x)))))) possibilities))
 
 (define (arrayset dim1 dim2 array)
   (vector-set! (vector-ref array dim1) dim2 (+ 1 (vector-ref (vector-ref array dim1) dim2))))
@@ -72,20 +61,30 @@
   (vector-map (lambda (y) (vector-fill! y 0)) array))
 
 (define (gridgen tree)
-  (arrayclear gridcounters)
+  (define myhash (make-table (length (vars (first (node tree))))))
+  (define leftcount-max 0)
   (define (gridgen-help tree leftcount rightcount)
-    (cond [(empty-tree? tree)  (arrayset leftcount rightcount gridcounters)]
+    (when (> leftcount leftcount-max) (set! leftcount-max leftcount))
+    (cond [(empty-tree? tree) (K(rightcount leftcount) += 1 in myhash)]
           [else   (begin (gridgen-help (left-tree tree) (+ 1 leftcount) rightcount) (gridgen-help (right-tree tree) leftcount (+ 1 rightcount)))]))
-  (gridgen-help tree 0 0))
+  (gridgen-help tree 0 0)
+  (list myhash leftcount-max))
 
 ;must first run gridgen to write the values on gridcounters
-(define (generate-csv filename)
+(define (generate-csv filename tree)
   (define outputport (open-output-file filename))
-  (vector-map (lambda (x)
-             (vector-map (lambda (y) (fprintf outputport "~a," y)) x)
-             (fprintf outputport "\n"))
-             gridcounters)
-  (close-output-port outputport))
+  (letrec ([gridgen-res (gridgen tree)]
+           [hash (first gridgen-res)]
+           [depth (second gridgen-res)])
+   (for ([i (range 0 (+ 1 (length (vars (first (node tree))))))])
+     (for([j (range 0 (+ 1 depth))])
+       (fprintf outputport "~a," (K(j i) in hash)))
+     (fprintf outputport "\n"))
+  ;(vector-map (lambda (x)
+  ;           (vector-map (lambda (y) (fprintf outputport "~a," y)) x)
+  ;           (fprintf outputport "\n"))
+  ;           gridcounters)
+  (close-output-port outputport)))
 
 (define (generate-all-grids pivotlist tblist k)
   (define possibilities (cartesian-product pivotlist tblist))
@@ -108,6 +107,18 @@
               (print-barrier barrier (FK-treelist (f-n 3) (g-n 3) (first x) (second x) (vars (f-n 3)))
                (string-replace (string-replace (format "barriers\\~a-~a-f.txt" (first x) (second x)) "#<procedure:" "") ">" "")))
             possibilities))
+
+(define (generate-small-trees n pivot tb)
+  (letrec ( [funcs (duals n)]
+            [trees (map (lambda (fg) (FK-treelist (first fg) (second fg) pivot tb (vars (first fg)))) funcs)]
+            [nontrivial-trees (filter (lambda (x) (not (empty-tree? x))) trees)]
+            [sortedtrees (sort nontrivial-trees (lambda (x y) (< (leafcount x) (leafcount y))))])
+    (for ([tree sortedtrees]
+          [i (range 0 (+ 1 (length sortedtrees)))])
+      (generate-svg (tree->pict tree )
+                (format "smalltrees/size~a/rank~a.svg" n i) '(15 50)))))
+      
+
 
 
                    

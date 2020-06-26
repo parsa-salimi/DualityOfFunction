@@ -43,17 +43,17 @@
   (if (empty? f) '()
   (list-iter (rest f) > (first f))))
 ;reduces a given formula: dleetes redundant and non minimal elemtns. O(n^2)
-(define (reduce f)
-  (define (minimal? clause f)
-    (if (empty? f) true
-        (and (not (subset? (car f) clause)) (minimal? clause (cdr f)))))
-  (define (reduce-help num f)
-    (cond [(= num (length f)) empty]
-          [(minimal? (list-ref f num) (remove (list-ref f num) f)) (cons (list-ref f num) (reduce-help (+ num 1) f))]
-          [else (reduce-help (+ num 1) f)]))
+(define (reduce formula)
+  (define (minimal? clause formula)
+    (if (empty? formula) true
+        (and (not (subset? (car formula) clause)) (minimal? clause (cdr formula)))))
+  (define (reduce-help num formula)
+    (cond [(= num (length formula)) empty]
+          [(minimal? (list-ref formula num) (remove (list-ref formula num) formula)) (cons (list-ref formula num) (reduce-help (+ num 1) formula))]
+          [else (reduce-help (+ num 1) formula)]))
   ;if a DNF contains an empty clause, then it is trivially the only minimal clause
-  (if (member '() f) '(())
-     (reduce-help 0 (remove-duplicates f equal? ))))
+  (if (member '() formula) '(())
+     (reduce-help 0 (remove-duplicates formula equal? ))))
 
 ;in DNF, adding formulas is straightforward
 (define (add f g) (disjunction f g))

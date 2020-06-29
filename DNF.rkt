@@ -72,10 +72,10 @@
       (if (list? certificate) (cons position certificate) certificate)))
 
 ;generates the profile of a given MBF
-(define (profile f)
+(define (profile f vars)
   (define (vector-inc! vector pos)
     (vector-set! vector pos (+ 1 (vector-ref vector pos))))
-  (letrec [(profilelength (argmax (lambda (x) x) (vars f)))
+  (letrec [(profilelength vars)
            (profile-vector (make-vector profilelength 0))
            (lengthlist (map length f))]
     (for ([i lengthlist])

@@ -9,7 +9,6 @@
     [(makelist a) (if (list? a) a '())]
     [(makelist a b ...) (if (list? a) (append a (makelist b ...))
                             (makelist b ...))]))
-
 ;returns a list, which tells us what check we didn't pass exactly(if we didn't pass some test), or is just '(#t #t #t #t #t) if we pass all tests.
 ;first element : same variables property. If false, returns a pair (var formula) indicating a variable that is either only in f or only in g, and either 'f or 'g to signal whether it is only in f or only in g
 ;second element:intersection property. IF false. returns the clause of empty intersection.
@@ -73,12 +72,12 @@
 
 ;list of all variables passing threshold
 (define (fthresh varlist f g)
-    (define guarantee (/ 1 (+ (length f) (length g))))
+    (define guarantee (/ 1 (log (+ (length f) (length g)) 2)))
     (filter (lambda (x) (>= (total-frequency x f g) guarantee)) varlist))
 
 ;constructive algorithm inspired by Lemma 2.2 in Fredman and Khachiyan's paper, returns the variables in the min-clause satisfying the threshold.
 (define (fcons varlist f g)
-    (define guarantee (/ 1 (+ (length f) (length g))))
+    (define guarantee (/ 1 (log (+ (length f) (length g)) 2)))
     (define (frequent-help clause formula)
       (filter (lambda (x) (>= (frequency x formula) guarantee)) clause))
     (let ((min-f (minimum-clause f))
@@ -169,12 +168,10 @@
     (begin
       (define sanitylist (sanitycheck-list f g))
       ;(printf "~a\n" sanitylist)
-    (cond [(not (equal? sanitylist '(#t #t #t #t #t))) (let ((certs (gencertificate f g sanitylist varlist)))
-                                                         ;(printf "~a\n" certs)
-                                                         (if (findf (lambda (x) (set-same? '(38 39 42 43 46 1 13 4 16 74 62 50 48) x)) certs) (display sanitylist)
-                                                             (list #f certs)))] ;(gencertificate f g sanitylist)]
+    (cond [(not (equal? sanitylist '(#t #t #t #t #t))) (let ([certs (gencertificate f g sanitylist varlist)])
+                                                             (list #f certs))]
           [(<= (* (clause-len f) (clause-len g)) 1) (easydual f g varlist)]
-          [(simpledisjunction? g f) '(#t 'nocert)] ;TODO: generate certificate for when this is false
+          [(simpledisjunction? g f) '(#t 'nocert)] 
           [(simpledisjunction? f g) '(#t 'nocert)]
           [ else (letrec ((x (tiebreaker (pivot (vars f) f g))) 
                           (f0 (remove-var f x))
@@ -196,6 +193,16 @@
   (FK-help f g pivot tiebreaker (vars f)))
 (define (FK-def f g)
   (FK f g fconsmax tbnaivelast))
+
+(define (print-occurances f)
+  (define (f-occurances func var)
+    (for [(i (range 0 (length func)))
+          (cl func)]
+      (when (member var cl) (printf "~a," i)))
+    (printf "\n"))
+  (for [(v (sort (vars f) <))]
+    (printf "~a.\t\t" v)
+    (f-occurances f v)))
 
 
 

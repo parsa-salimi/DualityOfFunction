@@ -11,6 +11,16 @@
 (define (empty-tree? tree) (or (eq? (first tree) #t) (eq? (first tree) #f)))
 (define (trivial? tree) (and (not (empty-tree? tree)) (empty-tree? (left-tree tree)) (empty-tree? (right-tree tree))))
 
+;general function that returns the count of all the nodes in the tree satisfying f
+(define (treecount tree f)
+  (define (treecount-help tree f count)
+    (cond
+      [(empty-tree? tree) (if (f (second tree)) 1 0)]
+      [else (+ (treecount-help (left-tree tree) f 0)
+               (treecount-help (right-tree tree) f 0)
+               (if (f (node tree)) 1 0))]))
+  (treecount-help tree f 0))
+
 (define (leafcount tree)
   (cond [(empty-tree? tree) 1]
         [else (+ (leafcount (left-tree tree)) (leafcount (right-tree tree)))]))
@@ -89,8 +99,9 @@
 (define (generate-all-grids pivotlist tblist k)
   (define possibilities (cartesian-product pivotlist tblist))
   (for-each (lambda (x)
-              (gridgen (FK-treelist (f-n k) (g-n k) (first x) (second x)))
-              (generate-csv (string-replace (string-replace (format "csv\\~a-~a-f~a-symmetric.csv" (first x) (second x) k) "#<procedure:" "") ">" "")))
+              ;(gridgen (FK-treelist (f-n k) (g-n k) (first x) (second x) (vars (f-n k))))
+              (generate-csv (string-replace (string-replace (format "csv\\~a-~a-f~a-symmetric.csv" (first x) (second x) k) "#<procedure:" "") ">" "")
+                        (FK-treelist (f-n k) (g-n k) (first x) (second x) (vars (f-n k)))))    
             possibilities))
 (define (print-barrier barrier tree filename)
   (define output (open-output-file filename))
@@ -117,7 +128,8 @@
           [i (range 0 (+ 1 (length sortedtrees)))])
       (generate-svg (tree->pict tree )
                 (format "smalltrees/size~a/rank~a.svg" n i) '(15 50)))))
-      
+
+
 
 
 

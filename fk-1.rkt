@@ -196,13 +196,24 @@
 
 (define (print-occurances f)
   (define (f-occurances func var)
+    (define mylist '())
     (for [(i (range 0 (length func)))
           (cl func)]
-      (when (member var cl) (printf "~a," i)))
-    (printf "\n"))
+      (when (member var cl) (set! mylist (append mylist (list i)))))
+    mylist)
   (for [(v (sort (vars f) <))]
-    (printf "~a.\t\t" v)
-    (f-occurances f v)))
+   (when (odd? v)
+   (printf "~a.\t\t" v)
+     (printf "~a\n" (f-occurances f v)))))
+(define (prn f lst)
+  (let ([newf (foldl (lambda (x acc)
+           (remove-clause acc x)) f lst)])
+    (print-occurances newf)))
+
+
+
+
+    
 
 
 

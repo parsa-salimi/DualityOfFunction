@@ -208,7 +208,13 @@
 (define (prn f lst)
   (let ([newf (foldl (lambda (x acc)
            (remove-clause acc x)) f lst)])
-    (print-occurances newf)))
+    newf))
+
+(define (print-covers n)
+  (for [(i (combinations (map (λ(x) (+ 1 (* 2 x))) (range 0 15)) n))]
+  (define f (prn (g-n 3) i)) 
+  (when (not (empty? f))
+    (printf "~a.\t~a\n" i f))))
 
 
 

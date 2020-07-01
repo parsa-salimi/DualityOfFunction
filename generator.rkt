@@ -1,6 +1,6 @@
 #lang racket
 (require "DNF.rkt")
-(provide f-n g-n selfgen)
+(provide f-n g-n selfgen selfgen-d)
 
 
 (define (f-n k)
@@ -35,4 +35,8 @@
 (define (selfgen n)
   (define a-list (combinations (range 1 n) 4))
   (define b-list (map (lambda (x) (cons n x)) (combinations (range 1 n) 2)))
+  (append a-list b-list))
+(define (selfgen-d n)
+  (define a-list (combinations (range 1 n) (- n 2)))
+  (define b-list (map (lambda (x) (cons n x)) (combinations (range 1 n) (- n 4))))
   (append a-list b-list))

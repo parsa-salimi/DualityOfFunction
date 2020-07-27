@@ -21,7 +21,7 @@
   (define (N n) (expt 2 (- (* 2 n) 1)))
   (define (vargen a b) (range a (+ 1 b)))
   (define (g-list k varlist)
-    (cond [(= k 1) (list varlist)]
+    (cond [(= k 1) (list  varlist)]
           [else
            (letrec ((newk (N (- k 1)))
                  (list-1 (take varlist newk))

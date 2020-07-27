@@ -36,7 +36,7 @@
                  (if (eq? newpartial partial) (display "e") (display ""))
               (dual-helper f newpartial (+ 1 accum)))]))
   (dual-helper f '() 1))
-(define (dualgen-def f) (dualgen f fcons tbnaive))
+(define (dualgen-def f) (dualgen f fcons tbfirst))
 (define (dual f) (first (dualgen-def f)))
 (define (uno f) (dualgen-def (getf f)))
 

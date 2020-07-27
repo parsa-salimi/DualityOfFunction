@@ -10,6 +10,10 @@
 (define (node-leaf? tree) (member #t tree))
 (define (empty-tree? tree) (or (eq? (first tree) #t) (eq? (first tree) #f)))
 (define (trivial? tree) (and (not (empty-tree? tree)) (empty-tree? (left-tree tree)) (empty-tree? (right-tree tree))))
+(define (tree->list tree)
+  (cond
+    [(empty-tree? tree) (list (second tree))]
+    [else (append  (list (node tree)) (tree->list (left-tree tree)) (tree->list (right-tree tree)))]))
 
 ;general function that returns the count of all the nodes in the tree satisfying f
 (define (treecount tree f)
@@ -41,14 +45,16 @@
   (and (= (length f) 1)
        (listofones g)))
 ;the following returns a computation tree
+(define d1k (make-table 32))
+(define dk1 (make-table 32))
 (define (FK-treelist-guided f g pivot tiebreaker varlist pivotlist)
     (cond [(or (empty? f) (empty? g)) (list #t (list f g))]
           [ (not (sanitycheck f g)) (list #f (list f g))]
           [ (<= (* (clause-len f) (clause-len g)) 1) (if (first (easydual f g varlist)) (list #t (list f g)) (list #f (list f g)))]
-          [(simpledisjunction? f g) (list #t (list f g))] ;catches formulas of the form f: /\_i x_i g: \/_i x_i
-          [(simpledisjunction? g f) (list #t (list f g))]
+          [(simpledisjunction? f g) (K((length g) 1) += 1 in d1k) (list #t (list f g))] ;catches formulas of the form f: /\_i x_i g: \/_i x_i
+          [(simpledisjunction? g f) (K((length f) 1) += 1 in dk1) (list #t (list f g))]
           [ else
-            (letrec ((x (if (empty? pivotlist) (tiebreaker (pivot (vars f) f g)) (first pivotlist)))
+            (letrec ((x (if (empty? pivotlist) (tiebreaker (pivot (sort (vars f) <) f g)) (first pivotlist)))
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
@@ -125,15 +131,36 @@
 (define (generate-small-trees n pivot tb)
   (letrec ( [funcs (duals n)]
             [trees (map (lambda (fg) (FK-treelist (first fg) (second fg) pivot tb (vars (first fg)))) funcs)]
-            [nontrivial-trees (filter (lambda (x) (not (empty-tree? x))) trees)]
-            [sortedtrees (sort nontrivial-trees (lambda (x y) (< (leafcount x) (leafcount y))))])
+            [nontrivial-trees (filter (lambda (x) (= (treecount x (lambda (t) #t)) 7)) trees)]
+            [sortedtrees (sort nontrivial-trees (lambda (x y) (< (treecount x (lambda (t) #t)) (treecount y (lambda (t) #t)))))])
     (for ([tree sortedtrees]
           [i (range 0 (+ 1 (length sortedtrees)))])
-      (generate-svg (tree->pict tree )
-                (format "smalltrees/size~a/rank~a.svg" n i) '(15 50)))))
+      (generate-svg  tree
+                (string-replace (string-replace (format "smalltrees\\size~a\\~a~arank~a.svg" n pivot tb i) "#<procedure:" "") ">" "") '(10 20) #f))))
 
+(define (combinationscount n)
+  (define formula (combinations (range 1 (* 2 n)) n))
+  (treecount (FK-treelist formula formula fnone tbfirst (range 1 (* 2 n))) (lambda (x) #t)))
 
+(define (vartypes tree)
+  (define nodelist (filter (lambda (x) (and (= (length (vars (first x))) 4) (= (length (vars (second x))) 4)))  (tree->list tree)))
+  (print (length nodelist))
+  (define var4types (make-hash))
+  (for [(type var4list)]
+    (hash-set! var4types (car type) 0))
+  (define (update-typecount f g)
+    (for [(type var4list)]
+      (when (or (isa f (car type)) (isa g (car type)))
+         ;(printf "~a\t~a\t~a" f g (car type))
+        (hash-set! var4types (car type) (+ 1 (hash-ref var4types (car type)))))))
+  (for [(fpair nodelist)]
+        (update-typecount (first fpair) (second fpair)))
+  (for ([(i j) var4types])
+    (printf "~a:\t~a\n" i j)))
+  
 
+;(isa '((6 7) (6 8) (5 7) (5 8)) 'pan3)
+(define mt (FK-treelist (f-n 3) (g-n 3) fcons tbfirst (vars (f-n 3))))
 
 
                    

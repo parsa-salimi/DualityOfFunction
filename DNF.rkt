@@ -1,6 +1,6 @@
 #lang racket
 (provide reduce minimum-clause maximum-clause remove-var remove-clause clause-len
-         vars disjunction add mult insert profile make-table K)
+         vars disjunction add mult insert profile make-table K match-formula M var4list isa)
 
 ;implements a two-dimnesional hash table(with n rows) as a vector of hash tables
 (define-syntax K
@@ -81,6 +81,57 @@
     (for ([i lengthlist])
       (vector-inc! profile-vector (- i 1)))
     (vector->list profile-vector)))
+
+
+(define (list-distinct? l) (= (length l) (length (remove-duplicates l))))
+
+(define (M f pattern condition)
+  `(match ',f (,pattern
+               #:when ,condition
+               #t)
+             (else #f)))
+ 
+
+(define (normalize-form f)
+  (sort (map (lambda (x) (sort x <)) f) (lambda (x y) (< (length x) (length y)))))
+(define (perm-mapper x permlist origlist)
+  (define index (index-of origlist x))
+  (list-ref permlist index))
+
+(define (match-formula f pattern condition)
+  (define fvars (sort (vars f) <))
+  (define formula (normalize-form f))
+  (define (permute-function permutation)
+    (map (lambda (cl) (map (lambda (v) (perm-mapper v permutation fvars)) cl)) formula))
+   ;(eval (M f pattern condition)))
+ (ormap (lambda (perm) (eval (M perm pattern condition))) (permutations formula)))
+
+
+(define var4list
+  '((star2 (list (list c1)(list a1 b1)) #t (list a1 b1 c1))
+    (star3 (list (list-no-order a1 b1)(list-no-order a2 c1)(list-no-order a3 d1)) (and (= a1 a2 a3)) (list a1 b1 c1 d1))
+    (hw3   (list (list-no-order a1 d1)(list-no-order b1 d2)(list-no-order c1 d3)(list-no-order a2 b2 c2)) (and (= a1 a2) (= b1 b2) (= c1 c2) (= d1 d2 d3)) (list a1 b1 c1 d1))
+    (k3    (list (list-no-order a1 c1)(list-no-order b1 c2)(list-no-order a2 b2)) (and (= a1 a2) (= b1 b2) (= c1 c2)) (list a1 b1 c1))
+    (k4-   (list (list-no-order c1 d1)(list-no-order a1 d2)(list-no-order a2 c2)(list-no-order b1 d3)(list-no-order b2 c3)) (and (= c1 c2 c3) (= d1 d2 d3) (= a1 a2) (= b1 b2)) (list a1 b1 c1 d1))
+    (k4    (list (list-no-order a1 b1) (list-no-order b2 c1) (list-no-order b3 d1) (list-no-order a2 c2) (list-no-order c3 d2) (list-no-order a3 d3))
+           (and (= a1 a2 a3) (= b1 b2 b3) (= c1 c2 c3) (= d1 d2 d3)) (list a1 b1 c1 d1))
+    (c4    (list (list-no-order a1 c1) (list-no-order b1 c2) (list-no-order b2 d1) (list-no-order a2 d2)) (and (= a1 a2) (= b1 b2) (= c1 c2) (= d1 d2)) (list a1 b1 c1 d1))
+    (path4 (list (list-no-order a1 c1)(list-no-order b1 c2)(list-no-order b2 d1)) (and (= c1 c2) (= b1 b2)) (list a1 b1 c1 d1))
+    (k2dd  (list (list-no-order a1)(list-no-order b1)(list-no-order c1 d1)) #t (list a1 b1 c1 d1))
+    (k3d   (list (list-no-order b1)(list-no-order a1 c1)(list-no-order c2 d1)(list-no-order a2 d2)) (and (= a1 a2) (= c1 c2) (= d1 d2)) (list a1 b1 c1 d1))
+    (pan3b (list (list-no-order b1 c1)(list-no-order b2 d1)(list-no-order a1)) (and (= b1 b2)) (list a1 b1 c1 d1))
+    (pan3  (list (list-no-order a1 b1)(list-no-order a2 c1)(list-no-order a3 d1)(list-no-order c2 d2)) (and (= a1 a2 a3) (= c1 c2) (= d1 d2)) (list a1 b1 c1 d1))
+    (d21   (list (list-no-order a1) (list-no-order b1)) #t (list a1 b1))))
+    ;(d31   (list (list-no-order a) (list-no-order b) (list-no-order c)) #t (list a b c))
+    ;(d41   (list (list-no-order a b c d)) #t (list a b c d))
+    ;(d11   (list (list a)) #t (list a))))
+
+(define (isa f type)
+  ;(display f) (display type)
+   (match-formula f (second (assoc type var4list)) (third (assoc type var4list))))
+
+
+
         
 
 

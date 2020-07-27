@@ -1,7 +1,7 @@
 #lang racket
 
 (require "DNF.rkt" "generator.rkt" "getfunctions.rkt")
-(provide sanitycheck easydual frequency fthresh fcons fmin fmax fconsmax tbnaive tbrand tbnaivelast tblex fthomas FK)
+(provide sanitycheck easydual frequency fthresh fcons fnone fmax fconsmax tbfirst tbrand tblast tblex FK)
 
 ;combines a list of lists of certificates into a single list of scertificates
 (define-syntax makelist
@@ -82,10 +82,10 @@
       (filter (lambda (x) (>= (frequency x formula) guarantee)) clause))
     (let ((min-f (minimum-clause f))
           (min-g (minimum-clause g)))
-      (if (< (length min-f) (length min-g)) (frequent-help min-f g) (frequent-help min-g f))))
+      (if (< (length min-f) (length min-g)) (sort (frequent-help min-f g) <) (sort (frequent-help min-g f) <))))
 
 ;naive implementation, just returns the list
-(define (fmin varlist f g) varlist)
+(define (fnone varlist f g) varlist)
 
 ;returns all the elements with maximal frequency. remark: fcons usually works better.
 (define (fmax varlist f g)
@@ -97,17 +97,10 @@
 (define (fconsmax varlist f g)
     (fmax (fcons varlist f g) f g))
 
-;this just returns a list of one element; meant to replicate Thomas' code
-(define (fthomas  varlist f g)
-  (define (iter-max lst)  ;accum is a pair: (variable, frequency), returns a pair maximizing the frequency
-    (foldl (lambda (a accum) (if (> (total-frequency a f g) (second accum)) (list a (total-frequency a f g)) accum))
-           (list 0 0) lst))
-  (list (first (iter-max (sort (fthresh (sort varlist <) f g) <)))))
-
 ;now for the tiebreakers
-(define (tbnaive varlist) (first varlist))
+(define (tbfirst varlist) (first varlist))
 (define (tblex varlist)   (argmin (lambda (x) x) varlist))
-(define (tbnaivelast varlist) (last varlist))
+(define (tblast varlist) (last varlist))
 (define (tbrand varlist) (list-ref varlist (random (length varlist))))
 
 (define (gencertificate f g failedlist varlist)
@@ -163,17 +156,28 @@
   (define (set-same? s1 s2)
     (if (and (list? s1) (list? s2))
     (and (subset? s1 s2) (subset? s2 s1)) #f))
+
+(define dk1 0)
+(define d1k 0)
+(define var4types (make-hash))
+(for [(type var4list)]
+  (hash-set! var4types (car type) 0))
+;(define (update-typecount f g)
+  ;(for [(type var4list)]
+  ;  (when (or (isa f (car type)) (isa g (car type)))
+  ;      (hash-set! var4types (car type) (+ 1 (hash-ref var4types (car type)))))))
 ;returns a pair (res cert). res is either true or false. if false, cert is a certificate. If true, cert is 'nocert
 (define (FK-help f g pivot tiebreaker varlist)
     (begin
       (define sanitylist (sanitycheck-list f g))
+      ;(when (<= (length (vars f)) 4) (update-typecount f g))
       ;(printf "~a\n" sanitylist)
     (cond [(not (equal? sanitylist '(#t #t #t #t #t))) (let ([certs (gencertificate f g sanitylist varlist)])
                                                              (list #f certs))]
-          [(<= (* (clause-len f) (clause-len g)) 1) (easydual f g varlist)]
-          [(simpledisjunction? g f) '(#t 'nocert)] 
-          [(simpledisjunction? f g) '(#t 'nocert)]
-          [ else (letrec ((x (tiebreaker (pivot (vars f) f g))) 
+          [(<= (* (clause-len f) (clause-len g)) 1)  (easydual f g varlist)]
+          [(simpledisjunction? g f) (set! dk1 (+ 1 dk1)) '(#t 'nocert)] 
+          [(simpledisjunction? f g) (set! d1k (+ 1 d1k)) '(#t 'nocert)]
+          [ else (letrec ((x (tiebreaker (pivot (sort (vars f) <) f g))) 
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
@@ -192,7 +196,7 @@
 (define (FK f g pivot tiebreaker)
   (FK-help f g pivot tiebreaker (vars f)))
 (define (FK-def f g)
-  (FK f g fconsmax tbnaivelast))
+  (FK f g fconsmax tblast))
 
 (define (print-occurances f)
   (define (f-occurances func var)
@@ -204,17 +208,25 @@
   (for [(v (sort (vars f) <))]
    (when (odd? v)
    (printf "~a.\t\t" v)
-     (printf "~a\n" (f-occurances f v)))))
+     (printf "(")
+     (for [(var (f-occurances f v))]
+       (printf "~a," var))
+     (printf ")\n")
+     )))
 (define (prn f lst)
   (let ([newf (foldl (lambda (x acc)
            (remove-clause acc x)) f lst)])
-    newf))
+    (print-occurances newf)))
 
 (define (print-covers n)
   (for [(i (combinations (map (λ(x) (+ 1 (* 2 x))) (range 0 15)) n))]
   (define f (prn (g-n 3) i)) 
   (when (not (empty? f))
     (printf "~a.\t~a\n" i f))))
+
+
+
+
 
 
 

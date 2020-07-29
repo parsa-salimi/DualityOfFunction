@@ -161,6 +161,19 @@
 
 ;(isa '((6 7) (6 8) (5 7) (5 8)) 'pan3)
 (define mt (FK-treelist (f-n 3) (g-n 3) fcons tbfirst (vars (f-n 3))))
+(define (find tree formula)
+  (define (fhelp tree formula current-path pathlist)
+    (cond [(empty-tree? tree) pathlist]
+          [(or (equal? (first (node tree)) formula) (equal? (second (node tree)) formula)) (cons current-path pathlist)]
+          [else (append (fhelp (right-tree tree) formula (string-append current-path "R") pathlist)
+                        (fhelp (left-tree tree) formula (string-append current-path "L") pathlist))]))
+  (fhelp tree formula "" empty))
+(define (nodeat tree path-string)
+  (define listed (string->list path-string))
+   (cond [(empty? listed) (node tree)]
+         [(eq? (first listed) #\L) (nodeat (left-tree tree) (list->string (cdr listed)))]
+         [else (nodeat (right-tree tree) (list->string (cdr listed)))]))
+       
 
 
                    

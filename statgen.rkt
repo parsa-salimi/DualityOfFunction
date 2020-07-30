@@ -1,5 +1,5 @@
 #lang racket
-(require "DNF.rkt" "generator.rkt" "fk-1.rkt" "profilegen.rkt" "dualgen.rkt" pict pict/tree-layout file/convertible racket/vector)
+(require "DNF.rkt" "generator.rkt" "fk-1.rkt" "profilegen.rkt" "dualgen.rkt" pict pict/tree-layout file/convertible racket/vector racket/string)
 
 ; A tree is recursively defined as :
 ; '(#t/#f '(f g)) : a terminal node, f and g are formulas
@@ -160,7 +160,7 @@
   
 
 ;(isa '((6 7) (6 8) (5 7) (5 8)) 'pan3)
-(define mt (FK-treelist (f-n 3) (g-n 3) fcons tbfirst (vars (f-n 3))))
+(define mt (FK-treelist (f-n 3) (g-n 3) fmax tbfirst (vars (f-n 3))))
 (define (find tree formula)
   (define (fhelp tree formula current-path pathlist)
     (cond [(empty-tree? tree) pathlist]
@@ -173,6 +173,15 @@
    (cond [(empty? listed) (node tree)]
          [(eq? (first listed) #\L) (nodeat (left-tree tree) (list->string (cdr listed)))]
          [else (nodeat (right-tree tree) (list->string (cdr listed)))]))
+
+(define (parents tree formula)
+  (letrec  [ (mypath (find tree formula))
+          (mypathmod (map (lambda (s) (substring s 0 (- (string-length s) 1))) mypath))
+          (mynodes (map (lambda (s) (nodeat tree s)) mypathmod))]
+    (print (length mynodes))
+  (remove-duplicates mynodes)))
+
+
        
 
 

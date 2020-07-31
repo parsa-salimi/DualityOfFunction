@@ -177,6 +177,7 @@
           [(<= (* (clause-len f) (clause-len g)) 1)  (easydual f g varlist)]
           [(simpledisjunction? g f) (set! dk1 (+ 1 dk1)) '(#t 'nocert)] 
           [(simpledisjunction? f g) (set! d1k (+ 1 d1k)) '(#t 'nocert)]
+          ;[(equal? g '((27 28 29 30)(27 28 31 32)(25 26 29 30)(25 26 31 32))) '(#t 'nocert)]
           [ else (letrec ((x (tiebreaker (pivot (sort (vars f) <) f g))) 
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))

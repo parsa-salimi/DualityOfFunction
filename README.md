@@ -1,5 +1,5 @@
 # DualityOfFunction
-This Racket code implements the Fredman Khachiyan algorithm for detecting if two given formulas in DNF are dual.
+This Racket code implements the [Fredman Khachiyan algorithm](https://pdfs.semanticscholar.org/cf09/761a7a863915f91346881df95484b5bee617.pdf) for detecting if two given monotone formulas in DNF are dual.
 
 # usage
 To interface with the software, use DrRacket's built in REPL. Specific use cases are demonstrated below.

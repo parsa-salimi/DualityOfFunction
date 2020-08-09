@@ -1,4 +1,4 @@
-## about 
+### about 
 This webpage serves as a pointer for common use cases of the code, together with some implementation details if you wish to modify anything
 
 ### Markdown

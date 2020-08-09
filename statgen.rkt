@@ -1,5 +1,5 @@
 #lang racket
-(require "DNF.rkt" "generator.rkt" "fk-1.rkt" "profilegen.rkt" "dualgen.rkt" pict pict/tree-layout file/convertible racket/vector racket/string)
+(require "DNF.rkt" "generator.rkt" "fk-1.rkt" "profilegen.rkt" "dualgen.rkt" pict pict/tree-layout file/convertible racket/vector racket/string racket/set)
 
 ; A tree is recursively defined as :
 ; '(#t/#f '(f g)) : a terminal node, f and g are formulas
@@ -142,25 +142,10 @@
   (define formula (combinations (range 1 (* 2 n)) n))
   (treecount (FK-treelist formula formula fnone tbfirst (range 1 (* 2 n))) (lambda (x) #t)))
 
-(define (vartypes tree)
-  (define nodelist (filter (lambda (x) (and (= (length (vars (first x))) 4) (= (length (vars (second x))) 4)))  (tree->list tree)))
-  (print (length nodelist))
-  (define var4types (make-hash))
-  (for [(type var4list)]
-    (hash-set! var4types (car type) 0))
-  (define (update-typecount f g)
-    (for [(type var4list)]
-      (when (or (isa f (car type)) (isa g (car type)))
-         ;(printf "~a\t~a\t~a" f g (car type))
-        (hash-set! var4types (car type) (+ 1 (hash-ref var4types (car type)))))))
-  (for [(fpair nodelist)]
-        (update-typecount (first fpair) (second fpair)))
-  (for ([(i j) var4types])
-    (printf "~a:\t~a\n" i j)))
   
 
 ;(isa '((6 7) (6 8) (5 7) (5 8)) 'pan3)
-(define mt (FK-treelist (f-n 3) (g-n 3) fmax tbfirst (vars (f-n 3))))
+
 (define (find tree formula)
   (define (fhelp tree formula current-path pathlist)
     (cond [(empty-tree? tree) pathlist]
@@ -181,8 +166,55 @@
     (print (length mynodes))
   (remove-duplicates mynodes)))
 
+;hand-crafted pattern matching for c_4, K2dd, and pan3b
+(define (list-distinct? l)
+  (= (length l) (length (remove-duplicates l))))
+(define (isc4 formula)
+  (define (isc4h f)
+    (and (= (length f) 2) (= (length (first f)) 2) (= (length (second f)) 2) (list-distinct? (first f)) (list-distinct? (second f)) (list-distinct? (flatten f))))
+  (or (isc4h (first formula)) (isc4h (second formula))))
+(define (isk2dd formula)
+  (define (isk2ddh f)
+    (and (= (length f) 2) (= (length (first f)) 3) (= (length (second f)) 3) (list-distinct? (first f)) (list-distinct? (second f)) (= (length (remove-duplicates (flatten f))) 4)
+         (= (length (set-intersect (first f) (second f))) 2)))
+  (or (isk2ddh (first formula)) (isk2ddh (second formula))))
+(define (ispan3b formula)
+  (define (ispan3bh f)
+    (define sortedf (sort f (lambda (x y) (< (length x) (length y)))))
+    (and (= (length sortedf) 2) (= (length (first sortedf)) 2) (= (length (second sortedf)) 3) (list-distinct? (first sortedf)) (list-distinct? (second sortedf))
+            (= (length (remove-duplicates (flatten sortedf))) 4) (= (length (set-intersect (first f) (second f))) 1)))
+  (or (ispan3bh (first formula)) (ispan3bh (second formula))))
+(define (isstar3 formula)
+  (define (helper f)
+    (define sortedf (sort f (lambda (x y) (< (length x) (length y)))))
+    (and (= (length sortedf) 2) (= (length (first sortedf)) 1) (= (length (second sortedf)) 3)
+         (list-distinct? (second sortedf))
+         (= (length (remove-duplicates (flatten sortedf))) 4) (= (length (set-intersect (first f) (second f))) 0)))
+  (or (helper (first formula)) (helper (second formula))))
+(define (isd41 formula)
+  (define (helper f)
+    (and (= (length f) 1) (= (length (first f)) 4)))
+  (or (helper (first formula)) (helper (second formula))))
+    
+  (define var4types (make-hash))
+  (for [(type var4list)]
+    (hash-set! var4types (car type) 0))
 
-       
+(define (vartypes tree)
+  (define nodelist (filter (lambda (x) (and (= (length (vars (first x))) 4) (= (length (vars (second x))) 4)))  (tree->list tree)))
+  (printf "~a\n" (length nodelist))
+  (define (update-typecount f)
+    (cond [(isc4 f) (hash-set! var4types 'c4 (+ 1 (hash-ref var4types 'c4)))]
+          [(isk2dd f)  (hash-set! var4types 'k2dd (+ 1 (hash-ref var4types 'k2dd)))]
+          [(ispan3b f)  (hash-set! var4types 'pan3b (+ 1 (hash-ref var4types 'pan3b)))]
+          [(isd41 f)   (display f) (newline) (hash-set! var4types 'd41 (+ 1 (hash-ref var4types 'd41)))]
+          [(isstar3 f)  (hash-set! var4types 'star3 (+ 1 (hash-ref var4types 'star3)))]
+          [else (printf "~a\n" f)]))
+  (for [(fpair nodelist)]
+        (update-typecount fpair))
+  (for ([(i j) var4types])
+    (printf "~a:\t~a\n" i j)))
+
 
 
                    

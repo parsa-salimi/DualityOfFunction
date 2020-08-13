@@ -22,4 +22,4 @@ to access all provided functions.
 The above steps provide only the functions specified by the `provide` statemtns at the top of each file. If for some reason you need to use a function that is not provided, replace "interface.rkt" in the above with the file containing the function.
 
 ## Defining new functions
-To define new functions, either define them in the file where it is most natural, and then use it in the same environment (by running DrRacket in the same file or `(enter! <filename>). Alternatively, provide it at the top of the file and use `interface.rkt`, or define it in `interface.rkt` and use it there.
+To define new functions, either define them in the file where it is most natural, and then use it in the same environment (by running DrRacket in the same file or `(enter! <filename>)`. Alternatively, provide it at the top of the file and use `interface.rkt`, or define it in `interface.rkt` and use it there.

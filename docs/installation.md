@@ -14,7 +14,12 @@ Note that the code uses several modules from the `main-distribution` of racket, 
 Open the `interface.rkt` file with DrRacket, which is a blank file including all the module imports. Then eitehr use the REPL, or write some code and run it with the `run` Button. You can also open any of the files and run them directly, although running in, say `DNF.rkt` won't give you access to functions in `fk-1.rkt`. 
 
 ## Command line instructions
-To run a REPL from the command line, run:
-```
-racket --repl -t DNF.rkt -t generator.rkt -t fk-1.rkt -t statgen.rkt
-```
+To run a REPL from the command line, navigate to the root directory and run `racket`. a REPL environment will open. Type
+`(enter! "interface.rkt")`
+to access all provided functions.
+
+## Accesing all functions
+The above steps provide only the functions specified by the `provide` statemtns at the top of each file. If for some reason you need to use a function that is not provided, replace "interface.rkt" in the above with the file containing the function.
+
+## Defining new functions
+To define new functions, either define them in the file where it is most natural, and then use it in the same environment (by running DrRacket in the same file or `(enter! <filename>). Alternatively, provide it at the top of the file and use `interface.rkt`, or define it in `interface.rkt` and use it there.

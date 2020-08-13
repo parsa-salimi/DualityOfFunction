@@ -36,19 +36,11 @@
                  (if (eq? newpartial partial) (display "e") (display ""))
               (dual-helper f newpartial (+ 1 accum)))]))
   (dual-helper f '() 1))
-(define (dualgen-def f) (dualgen f fcons tbfirst))
+
+(define (dualgen-def f) (dualgen f fnone tbfirst))
 (define (dual f) (first (dualgen-def f)))
 (define (uno f) (dualgen-def (getf f)))
 
-(define (benchmark f pivotlist tblist filename)
-  (define output (open-output-file filename))
-  (define possibilities (cartesian-product pivotlist tblist))
-  (for-each (lambda (possibility)
-              (define res (call-with-values (thunk (time-apply dualgen (list f (first possibility) (second possibility)))) list)) 
-              (fprintf output (string-replace (string-replace (format "~a-~a-f\t\n" (first possibility) (second possibility)) "#<procedure:" "") ">" ""))
-                       (fprintf output "calls to FK: ~a \t CPU time: ~a Real time: ~a\n" (second (first (first res))) (second res) (third res)))
-            possibilities)
-  (close-output-port output))
 
   
           

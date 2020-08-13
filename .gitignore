@@ -1,4 +1,4 @@
 *.bak
 *.csv
 *.svg
-compiled/
+**/compiled

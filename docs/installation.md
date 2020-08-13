@@ -7,6 +7,9 @@ nav_order: 2
 The code is written in [Racket](https://racket-lang.org/). To run the code, install Racket first.
 After cloning the repository, the code can be run either from the DrRacket IDE, or through the command line.
 
+Note that the code uses several modules from the `main-distribution` of racket, so in particular the code will not work properly on minimal racket. If you have minimal racket and want to get the required libraries, run 
+```raco pkg install main-distribution``
+
 ## DrRacket instructions
 Open the `interface.rkt` file with DrRacket, which is a blank file including all the module imports. Then eitehr use the REPL, or write some code and run it with the `run` Button. You can also open any of the files and run them directly, although running in, say `DNF.rkt` won't give you access to functions in `fk-1.rkt`. 
 

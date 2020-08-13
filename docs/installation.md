@@ -18,6 +18,8 @@ To run a REPL from the command line, navigate to the root directory and run `rac
 `(enter! "interface.rkt")`
 to access all provided functions.
 
+----
+
 ## Accesing all functions
 The above steps provide only the functions specified by the `provide` statemtns at the top of each file. If for some reason you need to use a function that is not provided, replace "interface.rkt" in the above with the file containing the function.
 

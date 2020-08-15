@@ -13,7 +13,7 @@ integer indices. For example, The [Gurvich-Khachiyan](https://www.sciencedirect.
 ---
 As an example of how the algorithm checks the duality of these two functions, and how this is associated with a tree, we now run through the first level of the recursion, fixing lexicographic ordering and no filtering for the pivot variables.
 
-We first split on 1 to get two subproblems:
+We plit on 1 to get two subproblems:
 ```
 F_1 = '((2 3)(2 4)(6 7)(6 8)(5 7)(5 8))
 G_0 or G_1 = '((3 4 5 6)(3 4 7 8)(2 5 6)(2 7 8))
@@ -24,7 +24,7 @@ F_0 or F_1 = '((2 3)(2 4)(3)(4)(6 7)(6 8)(5 7)(5 8) = '((3)(4)(6 7)(6 8)(5 7)(5 
 G_1 = '((3 4 5 6)(3 4 7 8))
 ```
 
-The full recusrion tree is depicted in the following figure:
+The full recusrion tree is depicted in the following figure. The two subproblems above correspond to the left and right branches of the tree.
 
 ![](example-tree.png/)
 

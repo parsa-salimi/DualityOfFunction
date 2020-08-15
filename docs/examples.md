@@ -26,5 +26,5 @@ G_1 = '((3 4 5 6)(3 4 7 8))
 
 The full recusrion tree is depicted in the following figure:
 
-![](https://github.com/parsa-salimi/DualityOfFunction/blob/master/docs/example-tree.png)
+![](example-tree.png/)
 

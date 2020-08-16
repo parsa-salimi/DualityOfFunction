@@ -22,7 +22,23 @@ The recursion tree is one of :
  - `(right-tree tree)`  returns the right branch.
  - `(empty-tree? tree)`  returns true if the tree is a leaf node
  - `(tree->list tree)`  converts the tree to a list of all the function pairs that occur in it, i.e a list of all the nodes.
-
+ 
+ In addition, the following functions are useful for counting the elements of a tree:
+ 
+ `(treecount tree f)` returns the count of the nodes of `tree` that satisfy `f`. `f` is a function taking a list of two MBF's and returning either true or false.
+ 
+ `(leafcount tree)` returns the count of the leaf nodes in `tree`.
+ 
+ ## Generating trees
+ 
+ The trees re generted by the `FK-treelist` procedure. This procedure takes the following arguments:
+ - f and g : boolean functions
+ - pivot   : pivot rule to apply (discussed in the next section)
+ - tiebreaker : The tiebreaking rule to apply after the pivot rule (again discussed in the next section)
+ - vars       : the set of variables these function are defined on. Since for dual functions `f` and `g` must have the same 
+ variables, you can use `(vars f)` as an argument.
+ 
+This procedure is built on top of `FK-treelist-guided`, which takes an extra argument: a list of variables. The algorithm then decomposes on these variables first, ignoring the pivot rules.
  
  
 

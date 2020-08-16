@@ -7,7 +7,7 @@ nav_order: 4
   Gathering data about a run of the algorithm is handled in `statgen.rkt`. This file does not run the implementation in `fk-a.rkt` directly, rather, it steps through the algorithm, building a binary recusrion tree containing the state of the algorithm at each step. A sample of such a tree was shown in the examples section. All subsequent operations on `statgen` make use of this tree.
 
 ---
-## Basic operations on trees.
+## Basic operations on trees
 
 The recursion tree is one of :
  - a list `(node left right)` where `node` is again a list of the two function being checked. `left` and `right` are both also trees.
@@ -29,6 +29,7 @@ The recursion tree is one of :
  
  `(leafcount tree)` returns the count of the leaf nodes in `tree`.
  
+ ---
  ## Generating trees
  
  The trees re generted by the `FK-treelist` procedure. This procedure takes the following arguments:
@@ -39,6 +40,10 @@ The recursion tree is one of :
  variables, you can use `(vars f)` as an argument.
  
 This procedure is built on top of `FK-treelist-guided`, which takes an extra argument: a list of variables. The algorithm then decomposes on these variables first, ignoring the pivot rules.
+
+---
+## Top level functions for visualization and aggregate statistics
+ 
  
  
 

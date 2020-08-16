@@ -16,7 +16,7 @@ The recursion tree is one of :
  These properties are not explicitly used in the rest of the code, if you wish to the data structure, you are free to do so as long as you re-implement the basic operations described below.
  
  There are various basic operations on these trees(note: only available from `statgen.rkt`). all of these take a tree as an argument
- ```Racket
+ ```
  (node tree) -> returns a list (f g) of functions.
  (left-tree tree) -> returns the left branch.
  (right-tree tree) -> returns the right branch.

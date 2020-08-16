@@ -17,11 +17,11 @@ The recursion tree is one of :
  
  There are various basic operations on these trees(note: only available from `statgen.rkt`). all of these take a tree as an argument
 
- `(node tree)` : returns a list (f g) of functions.
- `(left-tree tree)` : returns the left branch.
- `(right-tree tree)` : returns the right branch.
- `(empty-tree? tree)` : returns true if the tree is a leaf node
- `(tree->list tree)` : converts the tree to a list of all the function pairs that occur in it, i.e a list of all the nodes.
+ - `(node tree)`  returns a list (f g) of functions.
+ - `(left-tree tree)`  returns the left branch.
+ - `(right-tree tree)`  returns the right branch.
+ - `(empty-tree? tree)`  returns true if the tree is a leaf node
+ - `(tree->list tree)`  converts the tree to a list of all the function pairs that occur in it, i.e a list of all the nodes.
 
  
  

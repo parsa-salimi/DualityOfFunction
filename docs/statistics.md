@@ -27,7 +27,7 @@ The recursion tree is one of :
  
  `(treecount tree f)` returns the count of the nodes of `tree` that satisfy `f`. `f` is a function taking a list of two MBF's and returning either true or false.
  
- `(leafcount tree)` returns the count of the leaf nodes in `tree`.
+ `(leafcount tree)` returns the count of the leaf nodes in the tree.
  
  ---
  ### Generating trees

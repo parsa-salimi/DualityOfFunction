@@ -30,7 +30,7 @@ The recursion tree is one of :
  `(leafcount tree)` returns the count of the leaf nodes in `tree`.
  
  ---
- ## Generating trees
+ ### Generating trees
  
  The trees re generted by the `FK-treelist` procedure. This procedure takes the following arguments:
  - f and g : boolean functions

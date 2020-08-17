@@ -58,10 +58,7 @@ A useful way of getting an idea of how the tree looks is by using a 2 dimentiona
   - `(nodeat tree path-string)` returns the node corresponding to a path string on {L,R}. For example, `(nodeat tree (first (find tree formula))` should return `formula`, provided `(find tree formula` isn't empty.
   - `(parents tree formula)` returns a list of all the nodes that are direct parents of `formula`.
   
-  These can of course be combined. For example we might have the following use case:
-  ```Racket
-  (define 
-  
+
  
  
  

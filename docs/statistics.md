@@ -53,9 +53,7 @@ The `generate-svg` procedure generates an svg visualisation of the recursion tre
 ### Generating aggregate grids
 A useful way of getting an idea of how the tree looks is by using a 2 dimentional grid, where the `[i,j]`th entry is the number of leaf nodes that are reached with `i` left branches and `j` right branches. The `generate-csv` procedure does just that. it takes the filename nad the tree as an argument.
 
- ---
- 
- ## more functions on trees
+## more functions on trees
   - `(find tree formula)` returns a list of strings on {L,R} specifying the address of all the nodes in `tree` that have a function equal to `formula`.
   - `(nodeat tree path-string)` returns the node corresponding to a path string on {L,R}. For example, `(nodeat tree (first (find tree formula))` should return `formula`, provided `(find tree formula` isn't empty.
   - `(parents tree formula)` returns a list of all the nodes that are direct parents of `formula`.

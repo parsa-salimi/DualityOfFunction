@@ -1,6 +1,6 @@
 ---
 layout: default
-title: basic duality checking and pivtot heuristics
+title: basic duality checking and pivot heuristics
 nav_order: 5
 ---
 

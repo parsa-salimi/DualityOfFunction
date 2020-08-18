@@ -37,9 +37,24 @@
               (dual-helper f newpartial (+ 1 accum)))]))
   (dual-helper f '() 1))
 
-(define (dualgen-def f) (dualgen f fnone tbfirst))
-(define (dual f) (first (dualgen-def f)))
-(define (uno f) (dualgen-def (getf f)))
+(define (dual f)
+  (define (nonsup f g)
+    (filter (lambda (c)
+                (andmap (lambda (x) (not (subset? x c))) g)) f))
+  (cond [(equal? f '()) '(())]
+        [(equal? f '(())) '()]
+        [else
+         (letrec ((x (first (sort (vars f) <)))
+                       (f1  (remove-var f x))
+                       (f0  (remove-clause f x))
+                       (g0 (dual (reduce (disjunction f0 f1))))
+                       (g0-or-g1 (dual f0))
+                       (g1 (nonsup g0-or-g1 g0)))
+                (reduce (disjunction g0 (mult `((,x)) g1))))]))
+
+(define (dualgen-default f) (dualgen f fcons tbfirst))
+(define (cert-dual f) (first (dualgen-default f)))
+
 
 
   

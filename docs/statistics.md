@@ -35,8 +35,6 @@ The recursion tree is one of :
  - f and g : boolean functions
  - pivot   : pivot rule to apply (discussed in the next section)
  - tiebreaker : The tiebreaking rule to apply after the pivot rule (again discussed in the next section)
- - vars       : the set of variables these function are defined on. Since for dual functions `f` and `g` must have the same 
- variables, you can use `(vars f)` as an argument.
  
 This procedure is built on top of `FK-treelist-guided`, which takes an extra argument: a list of variables. The algorithm then decomposes on these variables first, ignoring the pivot rules.
 

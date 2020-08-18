@@ -56,7 +56,12 @@ A useful way of getting an idea of how the tree looks is by using a 2 dimentiona
 ## more functions on trees
   - `(find tree formula)` returns a list of strings on {L,R} specifying the address of all the nodes in `tree` that have a function equal to `formula`.
   - `(nodeat tree path-string)` returns the node corresponding to a path string on {L,R}. For example, `(nodeat tree (first (find tree formula))` should return `formula`, provided `(find tree formula` isn't empty.
-  - `(parents tree formula)` returns a list of all the nodes that are direct parents of `formula`.
+  - `(parents tree formula)` returns a list of all the nodes that are direct parents of `formula`.  
+---
+## pattern matching
+The function `(vartypes tree)` prints a list enumerating the number of distinct 4 variable functions occuring as subproblems (i,e nodes) in `tree`. It uses 
+pattern matching code in `patternmatcher.rkt`. Adding your own pattern is simple. pick a name `<name>` for the kind of pattern you want to match. Then, in `patternmatcher.rkt` define a function `(is<name> f)` where `f` is a pairof two functions. your function should examine these two values and return eitehr true or false. Now if you add `<name>` to `typelist`, the `vartypes` function will check your pattern as well. To define more sophisticated patterns, you might want to check our Racket's [https://docs.racket-lang.org/reference/match.html](pattern matching library). My initial pattern matching code used this library, but it was way too slow. 
+
   
 
  

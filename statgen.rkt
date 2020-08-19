@@ -154,7 +154,7 @@
 ;playground for our experiments
 ;(define ac (list "ac_200k.dat" "ac_150k.dat" "ac_130k.dat" "ac_110k.dat"))
 (define bms (list "bms2_400.dat" "bms2_200.dat" "bms2_100.dat"))
-(define connect4w (list "win100.dat" "win200.dat" "win400.dat" "win800.dat"))
+;(define connect4w (list "win100.dat" "win200.dat" "win400.dat" "win800.dat"))
 (define connect4l (list "lose100.dat" "lose200.dat" "lose400.dat" "lose800.dat"))
 (define matching (list "matching28.dat" "matching30.dat" "matching32.dat" "matching34.dat" "matching36.dat"))
 ;(define dual-matching (list "dualmatching30.dat" "dualmatching24.dat"
@@ -165,10 +165,10 @@
 
 
 (define pivotlist (list fnone fthresh fmax))
-(for [(func (list  connect4w connect4l thgraph))]
+(for [(func (list thgraph))]
   (for [(pair (cartesian-product func pivotlist))]
    (letrec [(f (getf (string-append "http://research.nii.ac.jp/~uno/dualization/" (first pair))))
-           (fd f)
+           (fd (dual f))
            (tree (FK-treelist f fd (second pair) tbfirst))]
     (print (string-append (string-replace (string-replace (first pair) "SDFP" "") ".dat" "")
            (string-replace (string-replace (format "~a" (second pair)) "#<procedure:" "-") ">" "")))

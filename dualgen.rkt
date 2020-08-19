@@ -44,7 +44,7 @@
   (cond [(equal? f '()) '(())]
         [(equal? f '(())) '()]
         [else
-         (letrec ((x (first (sort (vars f) <)))
+         (letrec ((x (argmin (lambda (x) x) (vars f)))
                        (f1  (remove-var f x))
                        (f0  (remove-clause f x))
                        (g0 (dual (reduce (disjunction f0 f1))))

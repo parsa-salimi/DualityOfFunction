@@ -50,7 +50,7 @@
     (and (equal? (profile f 4) '(0 3 0 0)) (= (length (vars f)) 4)))
   (and (not (isstar3 f)) (or (helper (first f)) (helper (second f)))))
 
-(define (isk4d f)
+(define (isk4- f)
   (define (helper f) (equal? (profile f 4) '(0 5 0 0)))
   (or (helper (first f)) (helper (second f))))
 
@@ -64,7 +64,7 @@
 
 (define-namespace-anchor a)
 (define ns (namespace-anchor->namespace a))
-(define typelist '(c4 k2dd pan3b d41 star3 pan3 k3d path4 k4d hw3 k4)) 
+(define typelist '(c4 k2dd pan3b d41 star3 pan3 k3d path4 k4- hw3 k4)) 
 
 ;(eval `(,(string->symbol (string-append "is" "c4"))))
 ; function is a string "c4" "d41" "hw3" "k4" etc

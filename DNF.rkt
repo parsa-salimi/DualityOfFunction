@@ -1,6 +1,6 @@
 #lang racket
 (provide reduce minimum-clause maximum-clause remove-var remove-clause clause-len
-         vars disjunction add mult insert profile make-table K match-formula M var4list isa)
+         vars disjunction add mult insert profile make-table K)
 
 ;implements a two-dimnesional hash table(with n rows) as a vector of hash tables
 (define-syntax K

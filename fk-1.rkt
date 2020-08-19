@@ -9,6 +9,7 @@
     [(makelist a) (if (list? a) a '())]
     [(makelist a b ...) (if (list? a) (append a (makelist b ...))
                             (makelist b ...))]))
+
 ;returns a list, which tells us what check we didn't pass exactly(if we didn't pass some test), or is just '(#t #t #t #t #t) if we pass all tests.
 ;first element : same variables property. If false, returns a pair (var formula) indicating a variable that is either only in f or only in g, and either 'f or 'g to signal whether it is only in f or only in g
 ;second element:intersection property. IF false. returns the clause of empty intersection.
@@ -120,12 +121,12 @@
                                                 (map (lambda (y) (set-subtract varlist (remove (first x) y))) (find-clauses-containing-var g (first x)))))
          ;if empty-intersection fails, the characteristic vector of the certificate clause is an answer:
   (cond [(list? (second failedlist))  (list 'intersection (second failedlist))] ;this conflicting assignment is different from the others, f(x)=g(x')=1. remove (x') from g instead.
-        [else  (filter list? (makelist
+        [else   (remove-duplicates (filter list? (makelist
                     (choose-cert (first failedlist) list? (lambda (conflictingvars) (foldl append '() (map (lambda (x) (conflicting-assignment-var x)) conflictingvars ))))
                     (choose-cert (third failedlist) list? (lambda (x) (conflicting-assignment-maxlength x g)))
                     (choose-cert (fourth failedlist) list? (lambda (x) (set-subtract varlist (conflicting-assignment-maxlength x f))))
-                    ;(choose-cert (fifth failedlist) list? (lambda (x) (generate-with-expectations f g varlist)))
-                    ))]))
+                    (choose-cert (fifth failedlist) list? (lambda (x) (generate-with-expectations f g varlist)))
+                    )))]))
 (define (generate-with-expectations f g varlist)
   ;proceed as in lemma 1 of FK
   (define (E zerovars onevars)
@@ -157,27 +158,18 @@
     (if (and (list? s1) (list? s2))
     (and (subset? s1 s2) (subset? s2 s1)) #f))
 
-(define dk1 0)
-(define d1k 0)
-(define var4types (make-hash))
-(for [(type var4list)]
-  (hash-set! var4types (car type) 0))
-;(define (update-typecount f g)
-  ;(for [(type var4list)]
-  ;  (when (or (isa f (car type)) (isa g (car type)))
-  ;      (hash-set! var4types (car type) (+ 1 (hash-ref var4types (car type)))))))
+
+
 ;returns a pair (res cert). res is either true or false. if false, cert is a certificate. If true, cert is 'nocert
 (define (FK-help f g pivot tiebreaker varlist)
     (begin
       (define sanitylist (sanitycheck-list f g))
-      ;(when (<= (length (vars f)) 4) (update-typecount f g))
-      ;(printf "~a\n" sanitylist)
+      ;here is a good place to put debugging information
     (cond [(not (equal? sanitylist '(#t #t #t #t #t))) (let ([certs (gencertificate f g sanitylist varlist)])
-                                                             (list #f certs))]
+                                                             (list #f  certs))]
           [(<= (* (clause-len f) (clause-len g)) 1)  (easydual f g varlist)]
-          [(simpledisjunction? g f) (set! dk1 (+ 1 dk1)) '(#t 'nocert)] 
-          [(simpledisjunction? f g) (set! d1k (+ 1 d1k)) '(#t 'nocert)]
-          ;[(equal? g '((27 28 29 30)(27 28 31 32)(25 26 29 30)(25 26 31 32))) '(#t 'nocert)]
+          [(simpledisjunction? g f)  '(#t 'nocert)] 
+          [(simpledisjunction? f g)  '(#t 'nocert)]
           [ else (letrec ((x (tiebreaker (pivot (sort (vars f) <) f g))) 
                           (f0 (remove-var f x))
                           (f1 (remove-clause f x))
@@ -189,41 +181,16 @@
                           (if (first second-recursion)
                                '(#t 'nocert)
                               ;otherwise the second recursion has failed and we have a certificate g_1(y') = f_0(y) \/ f_1(y)
-    
                                (list #f (map (lambda (cert) (insert cert x 1)) (second second-recursion)))))
                         ;otherwise the first recursion has failed and we have a certificate f_1(y') = g_0(y) \/ g_1(y)
                         (list #f (map (lambda (cert) (insert cert x 0)) (second first-recursion)))))])))
 
 (define (FK f g pivot tiebreaker)
   (FK-help f g pivot tiebreaker (vars f)))
-(define (FK-def f g)
-  (FK f g fconsmax tblast))
 
-(define (print-occurances f)
-  (define (f-occurances func var)
-    (define mylist '())
-    (for [(i (range 0 (length func)))
-          (cl func)]
-      (when (member var cl) (set! mylist (append mylist (list i)))))
-    mylist)
-  (for [(v (sort (vars f) <))]
-   (when (odd? v)
-   (printf "~a.\t\t" v)
-     (printf "(")
-     (for [(var (f-occurances f v))]
-       (printf "~a," var))
-     (printf ")\n")
-     )))
-(define (prn f lst)
-  (let ([newf (foldl (lambda (x acc)
-           (remove-clause acc x)) f lst)])
-    (print-occurances newf)))
 
-(define (print-covers n)
-  (for [(i (combinations (map (λ(x) (+ 1 (* 2 x))) (range 0 15)) n))]
-  (define f (prn (g-n 3) i)) 
-  (when (not (empty? f))
-    (printf "~a.\t~a\n" i f))))
+
+
 
 
 

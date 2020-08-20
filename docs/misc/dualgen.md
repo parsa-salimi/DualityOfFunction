@@ -1,6 +1,6 @@
 ---
 layout: default
 title: Dual generation
-parent: misc
+parent: miscellaneous functionality
 nav_order: 2
 ---

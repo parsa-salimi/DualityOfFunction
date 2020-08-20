@@ -163,9 +163,8 @@
 (define sdthgraph (list "SDTH42.dat" "SDTH62.dat" "SDTH82.dat" "SDTH102.dat"))
 (define sdfano (list "SDFP9.dat" "SDFP16.dat" "SDFP23.dat" "SDFP30.dat"))
 
-
-(define pivotlist (list fnone fthresh fmax))
-(for [(func (list thgraph))]
+(define (testvars pivotlist funclist)
+(for [(func funclist)]
   (for [(pair (cartesian-product func pivotlist))]
    (letrec [(f (getf (string-append "http://research.nii.ac.jp/~uno/dualization/" (first pair))))
            (fd (dual f))
@@ -174,7 +173,7 @@
            (string-replace (string-replace (format "~a" (second pair)) "#<procedure:" "-") ">" "")))
     (printf "\t")
     (vartypes tree))
-    (newline)))
+    (newline))))
 
 
 

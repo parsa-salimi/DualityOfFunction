@@ -1,6 +1,6 @@
 ---
 layout: default
-title: misc
+title: miscellaneous functionality
 nav_order: 6
 has_children: true
 ---

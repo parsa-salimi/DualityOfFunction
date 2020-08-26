@@ -1,5 +1,5 @@
 #lang racket
-(require "DNF.rkt" "generator.rkt" "fk-1.rkt" "profilegen.rkt" "dualgen.rkt" "getfunctions.rkt" "patternmatcher.rkt" pict pict/tree-layout file/convertible racket/vector racket/string racket/set)
+(require profile-flame-graph  "DNF.rkt" "generator.rkt" "fk-1.rkt" "profilegen.rkt" "dualgen.rkt" "getfunctions.rkt" "patternmatcher.rkt" pict pict/tree-layout file/convertible racket/vector racket/string racket/set)
 (provide node left-tree right-tree empty-tree? FK-treelist generate-svg generate-csv find nodeat parents)
 ; A tree is recursively defined as :
 ; '(#t/#f '(f g)) : a terminal node, f and g are formulas
@@ -31,16 +31,16 @@
 (define (simpledisjunction? f g)
   (define (listofones g)
     (cond [(empty? g) #t]
-          [(= (length (first g)) 1) (listofones (rest g))]
+          [(= (clause-len (first-clause g)) 1) (listofones (rest-clauses g))]
           [else #f]))
-  (and (= (length f) 1)
+  (and (= (size f) 1)
        (listofones g)))
 
 ;the following returns a computation tree
 (define (FK-treelist-guided f g pivot tiebreaker varlist pivotlist)
-    (cond [(or (empty? f) (empty? g)) (list #t (list f g))]
-          [ (not (sanitycheck f g)) (list #f (list f g))]
-          [ (<= (* (clause-len f) (clause-len g)) 1) (if (first (easydual f g varlist)) (list #t (list f g)) (list #f (list f g)))]
+    (cond
+          ;[ (not (sanitycheck f g)) (list #f (list f g))]
+          [ (<= (* (size f) (size g)) 1) (if (first (easydual f g varlist)) (list #t (list f g)) (list #f (list f g)))]
           [(simpledisjunction? f g)  (list #t (list f g))] ;catches formulas of the form f: /\_i x_i g: \/_i x_i
           [(simpledisjunction? g f)  (list #t (list f g))]
           [ else
@@ -49,9 +49,10 @@
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
                           (g1 (remove-clause g x)))
-                 (list (list f g) ;node
-                       (FK-treelist-guided (reduce f1) (reduce  (disjunction g0 g1)) pivot tiebreaker (remove x varlist) (if (empty? pivotlist) '() (rest pivotlist))) ;left subtree
-                       (FK-treelist-guided (reduce (disjunction f0 f1)) (reduce g1) pivot tiebreaker (remove x varlist) (if (empty? pivotlist) '() (rest pivotlist)))))])) ;right subtree
+                 (list (list (representation f) (representation g)) ;node
+                       (FK-treelist-guided  f1 (reduce  (disjunction g0 g1)) pivot tiebreaker (remove x varlist) (if (empty? pivotlist) '() (rest pivotlist))) ;left subtree
+                       (FK-treelist-guided (reduce (disjunction f0 f1))  g1 pivot tiebreaker (remove x varlist) (if (empty? pivotlist) '() (rest pivotlist)))))]))
+;right subtree
 (define (FK-treelist f g pivot tiebreaker)
   (FK-treelist-guided f g pivot tiebreaker (vars f) '()))
 
@@ -97,7 +98,7 @@
   (define possibilities (cartesian-product pivotlist tblist))
   (for-each (lambda (x)
               (generate-csv (string-replace (string-replace (format "csv\\~a-~a-~a.csv" (first x) (second x) f g) "#<procedure:" "") ">" "")
-                        (FK-treelist f g (first x) (second x) (vars f))))    
+                        (FK-treelist f g (first x) (second x) (vars f))))
             possibilities))
 
 (define (generate-small-trees n pivot tb)
@@ -131,14 +132,14 @@
   (remove-duplicates mynodes)))
 
 
-   
+
 (define var4types (make-hash))
 (for [(type typelist)]
   (hash-set! var4types type 0))
 
 (define (vartypes tree )
   (define nodelist (filter (lambda (x) (and (= (length (vars (first x))) 4) (= (length (vars (second x))) 4)))  (tree->list tree)))
-  ;(printf "~a\n" (leafcount tree))
+  (define var4list (list 'k4 'hw3 'c4 'pan3b 'pan3 'k4- 'path4 'k3d 'd41 'star3 'k2dd))
   (for [(type typelist)]
   (hash-set! var4types type 0))
   (define (update-typecount f)
@@ -147,41 +148,47 @@
         (hash-set! var4types type (+ 1 (hash-ref var4types type))))))
   (for [(fpair nodelist)]
         (update-typecount fpair))
-  (for ([(i j) var4types])
-    (printf "~a\t" j)))
+  (for ([i var4list])
+    (printf "~a\t" (hash-ref var4types i))))
 
 
 ;playground for our experiments
-;(define ac (list "ac_200k.dat" "ac_150k.dat" "ac_130k.dat" "ac_110k.dat"))
-(define bms (list "bms2_400.dat" "bms2_200.dat" "bms2_100.dat"))
-;(define connect4w (list "win100.dat" "win200.dat" "win400.dat" "win800.dat"))
-(define connect4l (list "lose100.dat" "lose200.dat" "lose400.dat" "lose800.dat"))
-(define matching (list "matching28.dat" "matching30.dat" "matching32.dat" "matching34.dat" "matching36.dat"))
-;(define dual-matching (list "dualmatching30.dat" "dualmatching24.dat"
-;                            "dualmatching28.dat" "dualmatching30.dat"))
-(define thgraph (list "TH40.dat" "TH60.dat" "TH80.dat" "TH100.dat"))
-(define sdthgraph (list "SDTH42.dat" "SDTH62.dat" "SDTH82.dat" "SDTH102.dat"))
-(define sdfano (list "SDFP9.dat" "SDFP16.dat" "SDFP23.dat" "SDFP30.dat"))
+
+(define (get-dual-data  search-string)
+  (define funcdat (string-append search-string ".dat"))
+  (define funcddat (string-append search-string "d.dat"))
+  (define url (string-append  "http://research.nii.ac.jp/~uno/dualization/" funcdat))
+      (system (format "{ cd ../shd ;
+                          wget ~a > /dev/null ;
+                        ./shd q ~a ~a > /dev/null ;
+                       mv -t ../racketbeta ~a ~a
+                         } &> /dev/null" url funcdat funcddat funcdat funcddat)))
+
 
 (define (testvars pivotlist funclist)
 (for [(func funclist)]
-  (for [(pair (cartesian-product func pivotlist))]
-   (letrec [(f (getf (string-append "http://research.nii.ac.jp/~uno/dualization/" (first pair))))
-           (fd (dual f))
-           (tree (FK-treelist f fd (second pair) tbfirst))]
-    (print (string-append (string-replace (string-replace (first pair) "SDFP" "") ".dat" "")
-           (string-replace (string-replace (format "~a" (second pair)) "#<procedure:" "-") ">" "")))
+  (for [(fun func)]
+    (get-dual-data fun)))
+ (printf "----done external dualization----\n")
+(for [(func funclist)]
+ (for [(fun func)]
+   (letrec [(f  (remove-duplicates (reduce (map (lambda (x) (sort x <)) (get-function-file (string-append fun ".dat"))))))
+    (fd (remove-duplicates (reduce (map (lambda (x) (sort x <)) (get-function-file (string-append fun "d.dat"))))))]
+     (for [(p pivotlist)]
+       (letrec
+           [ (tree (FK-treelist f fd p tbrand))]
+    (print (string-append (string-replace (string-replace fun "SDFP" "") ".dat" "")
+           (string-replace (string-replace (format "~a" p) "#<procedure:" "-") ">" "")))
     (printf "\t")
-    (vartypes tree))
-    (newline))))
+    (vartypes tree)
+    (printf "\t")
+    (printf "~a\t~a\t~a\t" (length f) (length fd) (leafcount tree)))
+    (newline))))))
 
-
-
-
-  
-
-
-                        
-                       
-
- 
+(testvars (list fmax fthresh fnone)  (list (list "win100" "win200" "win400")
+                                           (list "lose100" "lose200" "lose400") 
+                                           (list "matching20" "matching24" "matching28")
+                                           (list "TH40" "TH60" "TH80")
+                                           (list "SDTH42" "SDTH62" "SDTH82")
+                                           (list "SDFP9" "SDFP16" "SDFP23")
+                                                                 ))

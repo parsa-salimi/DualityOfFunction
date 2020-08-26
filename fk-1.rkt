@@ -1,6 +1,6 @@
 #lang racket
 
-(require "DNF.rkt" "generator.rkt" "getfunctions.rkt")
+(require profile-flame-graph "DNF.rkt" "generator.rkt" "getfunctions.rkt")
 (provide sanitycheck easydual frequency fthresh fcons fnone fmax fconsmax tbfirst tbrand tblast tblex FK)
 
 ;combines a list of lists of certificates into a single list of scertificates
@@ -167,7 +167,7 @@
       ;here is a good place to put debugging information
     (cond [(not (equal? sanitylist '(#t #t #t #t #t))) (let ([certs (gencertificate f g sanitylist varlist)])
                                                              (list #f  certs))]
-          [(<= (* (clause-len f) (clause-len g)) 1)  (easydual f g varlist)]
+          [(<= (* (size f) (size g)) 1)  (easydual f g varlist)]
           [(simpledisjunction? g f)  '(#t 'nocert)] 
           [(simpledisjunction? f g)  '(#t 'nocert)]
           [ else (letrec ((x (tiebreaker (pivot (sort (vars f) <) f g))) 
@@ -175,9 +175,9 @@
                           (f1 (remove-clause f x))
                           (g0 (remove-var g x))
                           (g1 (remove-clause g x))
-                          (first-recursion (FK-help (reduce f1) (reduce (disjunction g0 g1)) pivot tiebreaker (remove x varlist))))
+                          (first-recursion (FK-help  f1 (reduce (disjunction g0 g1)) pivot tiebreaker (remove x varlist))))
                    (if  (first first-recursion)
-                        (let ((second-recursion (FK-help (reduce (disjunction f0 f1)) (reduce g1) pivot tiebreaker (remove x varlist))))
+                        (let ((second-recursion (FK-help (reduce (disjunction f0 f1)) g1 pivot tiebreaker (remove x varlist))))
                           (if (first second-recursion)
                                '(#t 'nocert)
                               ;otherwise the second recursion has failed and we have a certificate g_1(y') = f_0(y) \/ f_1(y)
@@ -187,7 +187,6 @@
 
 (define (FK f g pivot tiebreaker)
   (FK-help f g pivot tiebreaker (vars f)))
-
 
 
 

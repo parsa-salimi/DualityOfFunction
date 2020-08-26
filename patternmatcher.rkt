@@ -38,28 +38,28 @@
   (or (helper (first formula)) (helper (second formula))))
 
 (define (ispan3 f)
-  (define (helper f) (not (equal? (profile f 4) '(0 4 0 0))))
+  (define (helper f) (not (equal? (function-profile f 4) '(0 4 0 0))))
   (and (not (isc4 f)) (or (helper (first f)) (helper (second f)))))
 
 (define (isk3d f)
-  (define (helper f) (and (= (length (vars f)) 4) (equal? (profile f 4) '(0 0 3 0))))
+  (define (helper f) (and (= (length (vars f)) 4) (equal? (function-profile f 4) '(0 0 3 0))))
   (or (helper (first f)) (helper (second f))))
 
 (define (ispath4 f)
   (define (helper f)
-    (and (equal? (profile f 4) '(0 3 0 0)) (= (length (vars f)) 4)))
+    (and (equal? (function-profile f 4) '(0 3 0 0)) (= (length (vars f)) 4)))
   (and (not (isstar3 f)) (or (helper (first f)) (helper (second f)))))
 
 (define (isk4- f)
-  (define (helper f) (equal? (profile f 4) '(0 5 0 0)))
+  (define (helper f) (equal? (function-profile f 4) '(0 5 0 0)))
   (or (helper (first f)) (helper (second f))))
 
 (define (ishw3 f)
-  (define (helper f) (equal? (profile f 4) '(0 3 1 0)))
+  (define (helper f) (equal? (function-profile f 4) '(0 3 1 0)))
   (or (helper (first f)) (helper (second f))))
 
 (define (isk4 f)
-  (define (helper f) (equal? (profile f 4) '(0 6 0 0)))
+  (define (helper f) (equal? (function-profile f 4) '(0 6 0 0)))
   (or (helper (first f)) (helper (second f))))
 
 (define-namespace-anchor a)

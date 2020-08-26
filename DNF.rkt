@@ -1,6 +1,6 @@
 #lang racket
-(provide reduce minimum-clause maximum-clause remove-var remove-clause clause-len
-         vars disjunction add mult insert profile make-table K)
+(provide reduce minimum-clause maximum-clause remove-var remove-clause clause-len size
+         vars disjunction add mult insert function-profile make-table K first-clause rest-clauses representation)
 
 ;implements a two-dimnesional hash table(with n rows) as a vector of hash tables
 (define-syntax K
@@ -11,52 +11,33 @@
     [(K(a b) in hash)  (hash-ref (vector-ref hash  a) b 0)]))
 (define (make-table n)
   (build-vector (+ 1 n) (lambda (m) (make-hash))))
-
-; This file implements the DNF representations and generators
 (define (set-same? a b)
   (and (subset? a b) (subset? b a)))
+
+; This file implements the list of lists DNF representation
+
 ; a formula is a list of list of int
 ;for example (x1 /\ x2 /\ x3)\/(x3 x4 x5) is represented by '((1 2 3) (3 4 5)). There is no ambiguity because we have assumed that our
 ;clauses are in DNF and moreover since we are only dealing with prime DNF's, we can safely ignore complements.
 ; 0 is represented by '(), and 1 is represented by '(())
-(define (disjunction f g) (remove-duplicates (append f g) set-same?))
 (define (clause-len c) (length c))
+(define (size f) (length f))
+;(define (vars f)
+;  (remove-duplicates (flatten f) =))
 (define (vars f)
-  (remove-duplicates (flatten f) =))
-
-(define (remove-var f x)
-    (cond [(empty? f) empty]
-          [(member x (first f)) (cons (remove x (first f)) (remove-var (rest f) x))]
-          [else(remove-var (rest f) x)]))
-(define (remove-clause f x)
-    (cond [(empty? f) empty]
-          [(member x (first f)) (remove-clause (rest f) x)]
-          [else (cons (first f) (remove-clause (rest f) x))]))
-;finding minimum and maximum clauses is very similar, so we write this helper function for both of them
-(define (list-iter lst func accum)
-  (foldl (lambda (x accum) (if (func (length x) (length accum)) x accum)) accum lst))
-
-(define (minimum-clause f)
-  (if (empty? f) '()
-  (list-iter (rest f) < (first f))))
-(define (maximum-clause f)
-  (if (empty? f) '()
-  (list-iter (rest f) > (first f))))
-;reduces a given formula: dleetes redundant and non minimal elemtns. O(n^2)
-(define (reduce f)
-  (define (minimal? clause f)
-    (if (empty? f) true
-        (and (not (subset? (car f) clause)) (minimal? clause (cdr f)))))
-  (define (reduce-help num f)
-    (cond [(= num (length f)) empty]
-          [(minimal? (list-ref f num) (remove (list-ref f num) f)) (cons (list-ref f num) (reduce-help (+ num 1) f))]
-          [else (reduce-help (+ num 1) f)]))
-  ;if a DNF contains an empty clause, then it is trivially the only minimal clause
-  (if (member '() f) '(())
-     (reduce-help 0 (remove-duplicates f equal? ))))
+  (define (merge l1 l2)
+    (cond [(empty? l1) l2]
+          [(empty? l2) l1]
+          [(< (first l1) (first l2)) (cons (first l1) (merge (rest l1) l2))]
+          [(> (first l1) (first l2)) (cons (first l2) (merge l1 (rest l2)))]
+          [(cons (first l1) (merge (rest l1) (rest l2)))]))
+  (foldl merge '() f))
+(define (first-clause f) (first f))
+(define (rest-clauses f) (rest f))
 
 ;in DNF, adding formulas is straightforward
-(define (add f g) (disjunction f g))
+(define (disjunction f g) (append f g))
+(define add disjunction)
 ;multiplication is a little bit harder
 (define (mult f g)
   (define (mult-clause c g)
@@ -66,13 +47,57 @@
         (mult-accum (rest f) (disjunction (mult-clause (first f) g) accum))))
   (reduce (mult-accum f '())))
 
-;code for representing certificates. currently just a list of zeroes and ones
+(define (remove-var f x)
+    (cond [(empty? f) empty]
+          [(member x (first f)) (cons (remove x (first f)) (remove-var (rest f) x))]
+          [else (remove-var (rest f) x)]))
+(define (remove-clause f x)
+    (cond [(empty? f) empty]
+          [(member x (first f)) (remove-clause (rest f) x)]
+          [else (cons (first f) (remove-clause (rest f) x))]))
+;finding minimum and maximum clauses is very similar, so we write this helper function for both of them
+(define (list-iter lst func accum)
+  (foldl (lambda (x accum) (if (func (length x) (length accum)) x accum)) accum lst))
+
+;returns a clause of minimum/maximum length
+(define (minimum-clause f)
+  (if (empty? f) '()
+  (list-iter (rest-clauses f) < (first-clause f))))
+(define (maximum-clause f)
+  (if (empty? f) '()
+  (list-iter (rest-clauses f) > (first-clause f))))
+
+;reduces a given formula: deletes redundant and non minimal elemtns. O(n^2)
+(define (reduce f)
+ (define (sub-ordered-list l1 l2) ;length l1 <= length l2
+    (cond [(empty? l1) #t]
+          [(empty? l2) (empty? l1)]
+          [(< (first l1) (first l2)) #f]
+          [(> (first l1) (first l2)) (sub-ordered-list l1 (rest l2))]
+          [else (sub-ordered-list (rest l1) (rest l2))]))
+  
+  (define (minimal? clause f)
+    (cond [(empty? f) #t]
+          [(>= (clause-len (first-clause f)) (clause-len clause)) (minimal? clause (rest-clauses f))]
+          [else (and (not (sub-ordered-list (first-clause f) clause))
+                     (minimal? clause (rest-clauses f)))]))
+  (define (reduce-help num f)
+    (cond [(= num (length f)) empty]
+          [(minimal? (list-ref f num)  f) (cons (list-ref f num) (reduce-help (+ num 1) f))]
+          [else (reduce-help (+ num 1) f)]))
+  ;if a DNF contains an empty clause, then it is trivially the only minimal clause
+  (if (member '() f) '(())
+     (reduce-help 0  f)))
+
+
+
+;sets the value of <position> to <value> in <certificate>
 (define (insert certificate position value)
   (if (= value 0) certificate
       (if (list? certificate) (cons position certificate) certificate)))
 
 ;generates the profile of a given MBF
-(define (profile f vars)
+(define (function-profile f vars)
   (define (vector-inc! vector pos)
     (vector-set! vector pos (+ 1 (vector-ref vector pos))))
   (letrec [(profilelength vars)
@@ -84,6 +109,9 @@
 
 
 (define (list-distinct? l) (= (length l) (length (remove-duplicates l))))
+
+
+(define (representation f) f)
 
 
 ;The following is the old pattern matching code, it's more versatile but

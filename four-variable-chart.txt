@@ -91,6 +91,7 @@ connect4 - lose:
 
 
 
+
 Threshold:  - run again. conjecture that most leaf nodes are d_n1 for n>4
 		k4	hw3	c4	pan3b	pan3	k4-	path4	k3d	d41	star3	k2dd		|F|    |G|      leaf nodes
 "40-fmax"     	0       0       0       0       3       0       0       0       2       0       0               400     21      38
@@ -107,8 +108,8 @@ Threshold:  - run again. conjecture that most leaf nodes are d_n1 for n>4
 "100-fnone"   	0       0       0       0       3       0       0       0       2       0       0               2500    51      99
 
 
----- rerun these 2000, 1000, 500 ,100
 
+---- rerun these 2000, 1000, 500 ,100
 Uniform random 500:
 		k4	hw3	c4	pan3b	pan3	k4-	path4	k3d	d41	star3	k2dd		|F|	|g|	leaf nodes
 "p9-fmax"  	1       37      199     1307    198     33      638     161     41      32      64              500     14176   15341
@@ -148,6 +149,7 @@ uniform random 2000:
 "p95-fmax" 	12      0       125     176     921     177     5       50      189     110     151             802     15385   14473
 "p95-fthresh"   8       1       3       35      508     23      3       20      256     0       147             802     15385   12349
 "p95-fnone"     8       1       3       35      508     23      3       20      256     0       147             802     15385   12353
+
 
 
 

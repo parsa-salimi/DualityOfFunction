@@ -1,5 +1,5 @@
 #lang racket
-(require profile-flame-graph  "DNF.rkt" "generator.rkt" "fk-1.rkt" "profilegen.rkt" "dualgen.rkt" "getfunctions.rkt" "patternmatcher.rkt" pict pict/tree-layout file/convertible racket/vector racket/string racket/set)
+(require "DNF.rkt" "generator.rkt" "fk-1.rkt" "profilegen.rkt" "dualgen.rkt" "getfunctions.rkt" "patternmatcher.rkt" pict pict/tree-layout file/convertible racket/vector racket/string racket/set)
 (provide node left-tree right-tree empty-tree? FK-treelist generate-svg generate-csv find nodeat parents)
 ; A tree is recursively defined as :
 ; '(#t/#f '(f g)) : a terminal node, f and g are formulas
@@ -62,7 +62,7 @@
 (define (generate-svg tree filename space minimal)
   ;generates a #tree-layout from a given tree, which can be used to visualise the tree.
   (define (tree->pict tree minimal?)
-    (cond [(empty-tree? tree) (if minimal? (tree-layout) (tree-layout #:pict(text (format "~a"  (second tree)))))]
+    (cond [(empty-tree? tree)  (tree-layout #:pict(text (format "~a"  (second tree))))]
         [else  (if minimal?
                    (tree-layout (tree->pict (left-tree tree) #t) (tree->pict (right-tree tree) #t))
                    (tree-layout #:pict(text (format "~a"  (node tree))) (tree->pict (left-tree tree) #f) (tree->pict (right-tree tree) #f)))]))
@@ -165,18 +165,34 @@
                          } &> /dev/null" url funcdat funcddat funcdat funcddat)))
 
 
+;(define (testvars pivotlist funclist)
+;(for [(func funclist)]
+;  (for [(fun func)]
+;    (get-dual-data fun)))
+; (printf "----done external dualization----\n")
+;(for [(func funclist)]
+; (for [(fun func)]
+;   (letrec [(f  (remove-duplicates (reduce (map (lambda (x) (sort x <)) (get-function-file (string-append fun ".dat"))))))
+;    (fd (remove-duplicates (reduce (map (lambda (x) (sort x <)) (get-function-file (string-append fun "d.dat"))))))]
+;     (for [(p pivotlist)]
+;       (letrec
+;           [ (tree (FK-treelist f fd p tbfirst))]
+;    (print (string-append (string-replace (string-replace fun "SDFP" "") ".dat" "")
+;           (string-replace (string-replace (format "~a" p) "#<procedure:" "-") ">" "")))
+;    (printf "\t")
+;    (vartypes tree)
+;    (printf "\t")
+;    (printf "~a\t~a\t~a\t" (length f) (length fd) (leafcount tree)))
+;    (newline))))))
+
 (define (testvars pivotlist funclist)
 (for [(func funclist)]
-  (for [(fun func)]
-    (get-dual-data fun)))
- (printf "----done external dualization----\n")
-(for [(func funclist)]
  (for [(fun func)]
-   (letrec [(f  (remove-duplicates (reduce (map (lambda (x) (sort x <)) (get-function-file (string-append fun ".dat"))))))
-    (fd (remove-duplicates (reduce (map (lambda (x) (sort x <)) (get-function-file (string-append fun "d.dat"))))))]
+   (letrec [(f  (remove-duplicates (reduce (map (lambda (x) (sort x <)) (getf (string-append "http://research.nii.ac.jp/~uno/dualization/" (string-append fun ".dat")))))))
+            (fd (dual f))]
      (for [(p pivotlist)]
        (letrec
-           [ (tree (FK-treelist f fd p tbrand))]
+           [ (tree (FK-treelist f fd p tbfirst))]
     (print (string-append (string-replace (string-replace fun "SDFP" "") ".dat" "")
            (string-replace (string-replace (format "~a" p) "#<procedure:" "-") ">" "")))
     (printf "\t")
@@ -185,10 +201,7 @@
     (printf "~a\t~a\t~a\t" (length f) (length fd) (leafcount tree)))
     (newline))))))
 
-(testvars (list fmax fthresh fnone)  (list (list "win100" "win200" "win400")
-                                           (list "lose100" "lose200" "lose400") 
-                                           (list "matching20" "matching24" "matching28")
-                                           (list "TH40" "TH60" "TH80")
-                                           (list "SDTH42" "SDTH62" "SDTH82")
-                                           (list "SDFP9" "SDFP16" "SDFP23")
+(testvars (list fmax fthresh fnone)  (list  
+                                          
+                                           (list "p99_1000")
                                                                  ))

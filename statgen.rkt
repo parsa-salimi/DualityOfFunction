@@ -203,5 +203,5 @@
 
 (testvars (list fmax fthresh fnone)  (list  
                                           
-                                           (list "p99_1000")
+                                           (list "SDTH42")
                                                                  ))

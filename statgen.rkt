@@ -201,7 +201,64 @@
     (printf "~a\t~a\t~a\t" (length f) (length fd) (leafcount tree)))
     (newline))))))
 
-(testvars (list fmax fthresh fnone)  (list  
-                                          
-                                           (list "SDTH42")
-                                                                 ))
+;(testvars (list fmax fthresh fnone)  (list  
+;                                          
+;                                           (list "SDTH42")
+;                                                                 ))
+
+(define (tryexample g)
+  (define f (dual g))
+
+  (define (maximum lst) (foldl max (first lst) (rest lst)))
+  (define varlist '(1 2 3 4 5 6 7 8))
+  (define myt (FK-treelist f g fthresh tbfirst varlist))
+  (display "primal = ")
+  (print g)
+  (newline)
+  (display "dual = ")
+  (print f)
+  (newline)
+  (define (freq f n) (length (filter (lambda (x) (member n x)) f)))
+  (display "dual frequency = ") 
+  (print (maximum (map (lambda (x) (/ (freq f x) (length f))) varlist )))
+  (newline)
+  (display "primal frequency = ")
+  (print (maximum (map (lambda (x) (/ (freq g x) (length g))) varlist )))
+  (newline)
+  (display "primal length = ")
+  (print (length g))
+  (newline)
+  (display "dual length = ")
+  (print (length f))
+  (newline)
+  (display "#nodes = ")
+  (print (leafcount myt))
+  (newline)
+  (print "-------")
+  (newline)
+  )
+
+(define (getfunctions name)
+  (define in (open-input-file name))
+  (define data (port->string in))
+  ;(define out (open-output-file filename))
+  ;a list of strings, each representing a clause
+  (define liststring (string-split data "\n"))
+  ;a list of lists of strings, each string being a number
+  (define listliststring  (map (lambda (string) (string-split string ")")) liststring))
+  (define (s-list->list lst)
+    (cond [(= (length lst) 1) '()]
+          [(cons (map string->number (string-split (first lst) " ")) (s-list->list (rest lst)))]))
+  (map s-list->list listliststring)
+  ;(define (liststringnum->listnum lst) (map string->number lst))
+  ;(map liststringnum->listnum listliststring)
+  )
+
+(define (analyse-file name)
+  (define funclist (getfunctions name))
+  (for ([i funclist])
+    (tryexample i)))
+
+(with-output-to-file "results3.txt" (lambda () (analyse-file "output.txt")))
+
+
